@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
+import org.json.JSONObject;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -36,6 +37,9 @@ public class AppTest
     	tests.addTest(new AppTest("connectionTest"));
     	tests.addTest(new AppTest("getRequestTest"));
     	tests.addTest(new AppTest("postFormRequestTest"));
+    	tests.addTest(new AppTest("postJSONTest"));
+    	//tests.addtest(new AppTest("postMultipartTest"));
+    	//tests.addTest(new AppTest("postLoginTest"));
         return tests;
     }
 
@@ -73,6 +77,22 @@ public class AppTest
         String line = rd.readLine();
         assertEquals("Expected {clienttest, test@test.com, client, test}", "{clienttest, test@test.com, client, test}", line);
 	}
+	public void postJSONTest() throws IOException {
+		Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+		JSONObject userJSON = new JSONObject();
+			userJSON.put("username", "clienttest");
+			userJSON.put("email", "test@test.com");
+			userJSON.put("emailc", "test@test.com");
+			userJSON.put("password", "testpassword");
+			userJSON.put("passwordc", "testpassword");
+			userJSON.put("gname", "client");
+			userJSON.put("sname", "test");
+		
+		HttpResponse response = test.postRequest("/user/create", userJSON);
+        BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+        String line = rd.readLine();
+        assertEquals("Expected {clienttest, test@test.com, client, test}", "{clienttest, test@test.com, client, test}", line);
+	}
 	/* incomplete
 	public void postMultipartTest() throws IOException {
 		Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
@@ -81,4 +101,10 @@ public class AppTest
         String line = rd.readLine();
         assertEquals("Expected {clienttest, test@test.com, client, test}", "{clienttest, test@test.com, client, test}", line);
 	} */
+	
+	public void postLoginTest() throws ClientProtocolException, IOException {
+		Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+		HttpResponse response = test.postRequest("/user/login", "username=test@password=testpassword");
+		assertTrue(response.getStatusLine().getStatusCode() == 200);
+	}
 }

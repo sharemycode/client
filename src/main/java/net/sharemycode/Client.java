@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 
 import javax.ws.rs.core.Response;
 
@@ -37,7 +38,9 @@ public class Client {
 	private String target;
 	private HttpClient client;
 	
-	
+	/*
+	 * TEST MAIN METHOD - development only
+	 */
 	public static void main(String[] args) throws IOException {
 		// Create a client
 		Client client = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
@@ -47,21 +50,12 @@ public class Client {
 		} else {
 			System.out.println("Conection failed. Exiting...");
 		}
-		// test a get request
-		HttpResponse response = client.getRequest("/project/randomURL");
-		BufferedReader rd = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
-        
-        // now test a post request application/x-www-form-urlencoded
-        response = client.postRequest("/user/create", "username=clienttest&email=test%40test.com&password=testpass&passwordc=testpass&emailc=test%40test.com&gname=client&sname=test");
-        rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-        String line = "";
-        while ((line = rd.readLine()) != null) {
-            System.out.println(line);
-        }
-        // uploading multipart is currently giving issues.
+        /*
         // test uploading project zip file
-        HttpEntity project = createProject("testProject", "testVersion", "description", "/home/larchibald/testProject.zip");
-        response = client.postRequest("/project/create", project);
+        //HttpEntity project = createProject("testProject", "testVersion", "description", "/home/larchibald/testProject.zip");
+        // test uploading project folder
+        
+        response = client.createProject("testProject", "testVersion", "description", "/home/larchibald/test/HelloEE7/");
         if(response.getStatusLine().getStatusCode() == 200) {
 			rd = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
 	        line = "";
@@ -70,18 +64,24 @@ public class Client {
 	        }
 		} else if(response.getStatusLine().getStatusCode() == 400) {
 			System.out.println("Error: 400 Bad Request");
-		}
+		}*/
         
         // Test completed!
         System.out.println("Client test complete!");
 	}
-
+	 /* 
+	  * CLIENT CONSTRUCTOR
+	  * Create HTTPClient with server details
+	  */
 	public Client(String domain, String directory, String RESTEndpoint) {
 		// Constructor: create HTTPClient
 		this.target = "http://" + domain + directory + RESTEndpoint;
 		this.client = new DefaultHttpClient();
 	}
-	
+	/* 
+	  * TEST CONNECTION
+	  * Test connection to the server is ok
+	  */
 	public Boolean testConnection() throws ClientProtocolException, IOException {
 		//test connection to the server
 		String requestContent = "/client/test";
@@ -95,51 +95,123 @@ public class Client {
 		}
 	}
 
-	public HttpResponse getRequest(String requestContent) throws ClientProtocolException, IOException {
+	/* 
+	 * GET REQUEST
+	 * Standard HTTP GET Request
+	 */
+	public HttpResponse getRequest(String requestContent) {
 		// perform a GET request. Client must decode the response
         HttpGet request = new HttpGet(target + requestContent);
-        HttpResponse response = client.execute(request);
+        HttpResponse response = null;
+		try {
+			response = client.execute(request);
+		} catch (ClientProtocolException e) {
+			System.err.println("Error: ClientProtocolException when GETing from " + requestContent);
+			e.printStackTrace();
+		} catch (IOException e) {
+			System.err.println("Error: IOException when GETing from " + requestContent);
+			e.printStackTrace();
+		}
         request.releaseConnection();
         return response;
     }
 	
-	public HttpResponse postRequest(String postContent, JSONObject postData) throws ClientProtocolException, IOException {
-		// submit a POST request with JSON data
-		HttpClient client = new DefaultHttpClient();
-        HttpPost post = new HttpPost(target + postContent);
-        StringEntity input = new StringEntity(postData.toString());
-        post.addHeader("content-type", "application/json");
-        post.setEntity(input);
-        HttpResponse response = client.execute(post);
-        post.releaseConnection(); // release the connection
-        return response;
-    }
+	/* 
+	 * POST REQUESTS
+	 * HTTP POST Requests: JSON, urlencodedstring and multipart(HTTPEntity)
+	 */
 	
-	public HttpResponse postRequest(String postContent, String postData) throws ClientProtocolException, IOException {
-		// submit a POST request with urlencodedstring data
-		HttpClient client = new DefaultHttpClient();
+	public HttpResponse postRequest(String postContent, JSONObject postData) {
+		// submit a POST request with JSON data
         HttpPost request = new HttpPost(target + postContent);
-        StringEntity input = new StringEntity(postData);
-        request.addHeader("content-type", "application/x-www-form-urlencoded");
-        request.setEntity(input);
-        HttpResponse response = client.execute(request);
+        StringEntity input = null;
+        HttpResponse response = null;
+		try {
+			input = new StringEntity(postData.toString());
+	        request.addHeader("content-type", "application/json");
+	        request.setEntity(input);
+	        
+			response = client.execute(request);
+		} catch (UnsupportedEncodingException e1) {
+			System.err.println("Error: UnsupportedEncodingException when POSTing to " + postContent);
+			e1.printStackTrace();
+		} catch (ClientProtocolException e) {
+			System.err.println("Error: ClientProtocolException when POSTing to " + postContent);
+			e.printStackTrace();
+		} catch (IOException e) {
+			System.err.println("Error: IOException when POSTing to " + postContent);
+			e.printStackTrace();
+		}
         request.releaseConnection(); // release the connection
         return response;
     }
 	
-	public HttpResponse postRequest(String postContent, HttpEntity postData) throws ClientProtocolException, IOException {
+	public HttpResponse postRequest(String postContent, String postData) {
+		// submit a POST request with urlencodedstring data
+        HttpPost request = new HttpPost(target + postContent);
+        StringEntity input = null;
+        HttpResponse response = null;
+        try {
+        	input = new StringEntity(postData);
+	        request.addHeader("content-type", "application/x-www-form-urlencoded");
+	        request.setEntity(input);
+			response = client.execute(request);
+		} catch (UnsupportedEncodingException e1) {
+			System.err.println("Error: UnsupportedEncodingException when POSTing to " + postContent);
+			e1.printStackTrace();
+		} catch (ClientProtocolException e) {
+			System.err.println("Error: ClientProtocolException when POSTing to " + postContent);
+			e.printStackTrace();
+		} catch (IOException e) {
+			System.err.println("Error: IOException when POSTing to " + postContent);
+			e.printStackTrace();
+		}
+        request.releaseConnection(); // release the connection
+        return response;
+    }
+	
+	public HttpResponse postRequest(String postContent, HttpEntity postData) {
 		// submit a POST request with Multipart data. Assumes HttpEntity already created with MultipartBuilder
-		HttpClient client = new DefaultHttpClient();
         HttpPost request = new HttpPost(target + postContent);
         request.setEntity(postData);
         request.addHeader("content-type", postData.getContentType().getValue());
         request.addHeader("accept-encoding", "multipart/form-data");
-        HttpResponse response = client.execute(request);
+        HttpResponse response = null;
+		try {
+			response = client.execute(request);
+		} catch (ClientProtocolException e) {
+			System.err.println("Error: ClientProtocolException when POSTing to " + postContent);
+			e.printStackTrace();
+		} catch (IOException e) {
+			System.err.println("Error: IOException when POSTing to " + postContent);
+			e.printStackTrace();
+		}
         request.releaseConnection(); // release the connection
         return response;
     }
 	
-	public static HttpEntity createProject(String name, String version, String description, String projectPath){
+	/*
+	 * CREATE USER - POST JSON
+	 * Register new user
+	 */
+	public HttpResponse createUser(String username, String email, String emailc, String password, String passwordc, String givenName, String surname) {
+		
+		JSONObject userJSON = new JSONObject();
+			userJSON.put("username", username);
+			userJSON.put("email", email);
+			userJSON.put("emailc", emailc);
+			userJSON.put("password", password);
+			userJSON.put("passwordc", passwordc);
+			userJSON.put("gname", givenName);
+			userJSON.put("sname", surname);
+		HttpResponse response = postRequest("/user/create", userJSON);
+		return response;
+	}
+	/* 
+	 * PUBLISH PROJECT - POST
+	 * Share project from local files, upload as zip
+	 */
+	public HttpResponse createProject(String name, String version, String description, String projectPath){
 		// create a HttpEntity from project information and zip archive
 		MultipartEntityBuilder multipart = MultipartEntityBuilder.create();
 		multipart.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
@@ -192,8 +264,10 @@ public class Client {
 			e.printStackTrace();
 		}
 		
-		HttpEntity entity = multipart.build();
-		return entity;
+		HttpEntity projectEntity = multipart.build();
+        HttpResponse response = postRequest("/project/create", projectEntity);
+		
+		return response;
 		
 	}
 	/* Now no longer needed. MultipartEntityBuilder generates the boundary automatically
@@ -201,4 +275,23 @@ public class Client {
         return (Long.toString(System.currentTimeMillis(), 16));
     }
 	*/
+	
+	//TODO user login	- POST
+	
+	//TODO user logout	- GET
+	public HttpResponse userLogout() {
+		// TODO authorise user?
+		HttpResponse response = getRequest("/user/logout");
+		
+		return response;
+	}
+	//TODO update authorisation	- POST
+	//TODO remove authorisation	- GET?
+	//TODO publish resource		- POST
+	//TODO list resources		- GET
+	//TODO list projects
+	//TODO fetch resource		- GET
+	//TODO delete resource		- GET?
+	//TODO subscribe to resource updates - POST/WS?
+	//TODO publish resource update	- POST/WS?
 }
