@@ -31,7 +31,7 @@ public class Client {
 	
 	public static final String DOMAIN = "localhost:8080";		// The domain of your REST service. Include the port after : if required.
 	public static final String DIRECTORY = "";					// the directory where your service webapp lives
-	public static final String RESTENDPOINT = "/service/rest";	// The rest endpoint directory.
+	public static final String RESTENDPOINT = "/sharemycode/rest";	// The rest endpoint directory.
 	
 
 	// Client instance variables
@@ -50,21 +50,17 @@ public class Client {
 		} else {
 			System.out.println("Conection failed. Exiting...");
 		}
-        /*
+        
         // test uploading project zip file
         //HttpEntity project = createProject("testProject", "testVersion", "description", "/home/larchibald/testProject.zip");
         // test uploading project folder
         
-        response = client.createProject("testProject", "testVersion", "description", "/home/larchibald/test/HelloEE7/");
-        if(response.getStatusLine().getStatusCode() == 200) {
-			rd = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
-	        line = "";
-	        while ((line = rd.readLine()) != null) {
-	          System.out.println(line);
-	        }
-		} else if(response.getStatusLine().getStatusCode() == 400) {
-			System.out.println("Error: 400 Bad Request");
-		}*/
+        HttpResponse response = client.createProject("testProject", "testVersion", "description", "/home/larchibald/test/HelloEE7/");
+        BufferedReader rd = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
+        String line = "";
+        while ((line = rd.readLine()) != null) {
+          System.out.println(line);
+        }
         
         // Test completed!
         System.out.println("Client test complete!");

@@ -53,7 +53,7 @@ public class AppTest
     
     public static final String DOMAIN = "localhost:8080";		// The domain of your REST service. Include the port after : if required.
 	public static final String DIRECTORY = "";					// the directory where your service webapp lives
-	public static final String RESTENDPOINT = "/service/rest";	// The rest endpoint directory.
+	public static final String RESTENDPOINT = "/sharemycode/rest";	// The rest endpoint directory.
     
 	public void connectionTest() throws ClientProtocolException, IOException {
 		Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
@@ -85,9 +85,8 @@ public class AppTest
 			userJSON.put("emailc", "test@test.com");
 			userJSON.put("password", "testpassword");
 			userJSON.put("passwordc", "testpassword");
-			userJSON.put("gname", "client");
-			userJSON.put("sname", "test");
-		
+			userJSON.put("fname", "client");
+			userJSON.put("lname", "test");
 		HttpResponse response = test.postRequest("/user/create", userJSON);
         BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
         String line = rd.readLine();
