@@ -39,6 +39,7 @@ extends TestCase
         tests.addTest(new AppTest("postFormRequestTest"));
         tests.addTest(new AppTest("postJSONTest"));
         //tests.addTest(new AppTest("postLoginTest"));
+        tests.addTest(new AppTest("fileUploadTest"));
         return tests;
     }
 
@@ -81,7 +82,7 @@ extends TestCase
         JSONObject userJSON = new JSONObject();
         userJSON.put("name", "hello");
         userJSON.put("value", "world");
-        HttpResponse response = test.postRequest("/service/test/json", userJSON);
+        HttpResponse response = test.postRequest("/system/test/json", userJSON);
         assertEquals("Expected 200", 200, response.getStatusLine().getStatusCode());
     }
 
@@ -89,5 +90,19 @@ extends TestCase
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         HttpResponse response = test.postRequest("/user/login", "username=test@password=testpassword");
         assertTrue(response.getStatusLine().getStatusCode() == 200);
+    }
+    
+    public void fileUploadTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        String filePath = "/home/larchibald/test.txt";
+        JSONObject result = null;
+        try {
+            result = test.fileUpload(filePath);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        assertTrue(result.getBoolean("success"));
+        
     }
 }

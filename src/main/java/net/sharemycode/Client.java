@@ -1,8 +1,15 @@
 package net.sharemycode;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
@@ -25,6 +32,7 @@ public class Client {
     public static final String DIRECTORY = "";					       // The directory where your service webapp lives
     public static final String RESTENDPOINT = "/sharemycode/rest";     // REST endpoint directory.
     public static final String UPLOADENDPOINT = "/sharemycode/upload"; // File upload endpoint
+    public static final int MAX_UPLOAD = 10485760; // 10MB
 
     // Client instance variables
     private String target;
@@ -61,7 +69,7 @@ public class Client {
      */
     public Boolean testConnection() throws ClientProtocolException, IOException {
         //test connection to the server
-        String requestContent = "/service/test";
+        String requestContent = "/system/test";
         HttpGet request = new HttpGet(target + requestContent);	// set up the request
         HttpResponse response = client.execute(request);
         request.releaseConnection();							// release the connection
@@ -170,6 +178,44 @@ public class Client {
         return response;
     }
 
+    public JSONObject fileUpload(String path) throws IOException {
+        
+        File file = new File(path);
+        
+        URL url = new URL("http://" + DIRECTORY + DOMAIN + UPLOADENDPOINT);
+        HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
+        httpConnection.setUseCaches(false);
+        httpConnection.setDoOutput(true);
+        httpConnection.setRequestMethod("POST");
+        //httpConnection.setRequestProperty("Content-Type", "application/octet-stream");
+        httpConnection.setRequestProperty("filename", file.getName());
+        
+        // open output stream of HTTP connection for writing data
+        OutputStream outputStream = httpConnection.getOutputStream();
+        // create input stream for reading from file
+        FileInputStream inputStream = new FileInputStream(file);
+        
+        byte[] buffer = new byte[1024];
+        int bytesRead = -1;
+        System.out.println("DEBUG: Writing data to server");
+        while((bytesRead = inputStream.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, bytesRead);
+        }
+        outputStream.flush();
+        System.out.println("DEBUG: Data written");
+        outputStream.close();
+        inputStream.close();
+        // reads server's response
+        String message = null;
+        try {
+            message = IOUtils.toString(httpConnection.getInputStream(), "UTF-8");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println("Server's response: " + message);
+        return new JSONObject(message);
+    }
+    
     // TODO DELETE REQUEST
     
     // TODO PUT REQUEST
