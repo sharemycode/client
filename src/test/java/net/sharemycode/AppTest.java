@@ -45,6 +45,8 @@ extends TestCase
         //tests.addTest(new AppTest("fileUploadTest"));
         tests.addTest(new AppTest("listProjectsTest"));
         tests.addTest(new AppTest("fetchProjectTest"));
+        tests.addTest(new AppTest("listResourcesTest"));
+        tests.addTest(new AppTest("fetchResourceTest"));
         return tests;
     }
 
@@ -135,5 +137,17 @@ extends TestCase
         JSONObject result = test.fetchProject("8ac081c248a02e440148a0398c2c0000");
         System.out.println(result.toString());
         assertNotNull(result);
+    }
+    
+    public void listResourcesTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        JSONArray result = test.listResources("8ac081c248a02e440148a0ff40850008");
+        System.out.println(result.getJSONObject(0).toString());
+        assertNotNull(result);
+    }
+    
+    public void fetchResourceTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        assertTrue(test.fetchResource(30L) == 200);
     }
 }

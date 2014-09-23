@@ -4,7 +4,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -86,6 +88,7 @@ public class Client {
     /*
      * GET REQUEST
      * Standard HTTP GET Request
+     * Tested: 16/09/2014
      */
     public HttpResponse getRequest(String requestContent) {
         // perform a GET request. Client must decode the response
@@ -104,6 +107,8 @@ public class Client {
         return response;
     }
 
+    /* GET JSON REQUEST */
+    // TODO Unit Test for this function (tested as part of listResources 23/09/2014)
     public HttpResponse getJsonRequest(String requestContent) {
         // perform a GET request that returns a JSON Object
         HttpGet request = new HttpGet(target + requestContent);
@@ -127,7 +132,7 @@ public class Client {
      * Scheduled for removal: multipart(HTTPEntity)
      */
 
-    /* POST JSON */
+    /* POST JSON */ // Tested 16/09/2014
     public HttpResponse postRequest(String postContent, JSONObject postData) {
         // submit a POST request with JSON data
         HttpPost request = new HttpPost(target + postContent);
@@ -249,6 +254,7 @@ public class Client {
     /*
      * CREATE USER - POST JSON
      * Register new user
+     * Tested: 23/09/2014
      */
     public String createUser(String username, String email, String emailc, String password, String passwordc, String firstName, String lastName) {
 
@@ -334,8 +340,7 @@ public class Client {
 
     }
 */
-    /* LIST PROJECTS - GET JSON */
-    // TODO test this function
+    /* LIST PROJECTS - GET JSON */  // Tested 23/09/2014
     public JSONArray listProjects() {
         // return a list of projects (User's projects when Authentication is working)
         HttpResponse response = getJsonRequest("/projects");
@@ -353,8 +358,7 @@ public class Client {
         return null;
     }
     
-    /* FETCH PROJECT - GET JSON */
-    // TODO test this function
+    /* FETCH PROJECT - GET JSON */  // Tested 23/09/2014
     public JSONObject fetchProject(String projectId) {
         // return project data as JSON object
         String resource = "/projects/" + projectId;
@@ -372,23 +376,23 @@ public class Client {
         return null;
     }
     
-    /* LIST RESOURCES - GET JSON*/
-    // TODO test this function
-    public JSONObject listResources(String projectId) {
+    /* LIST RESOURCES - GET JSON*/  // Tested 23/09/2014
+    public JSONArray listResources(String projectId) {
         // Return a list of resources for a project as JSON
         String resource = "/projects/" + projectId + "/resources";
-        HttpResponse response = getRequest(resource);
+        HttpResponse response = getJsonRequest(resource);
         String body = null;
         try {
             body = IOUtils.toString(response.getEntity().getContent());
+            return new JSONArray(body);
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        return new JSONObject(body);
+        return null;
     }
     
-    /* CREATE PROJECT - POST JSON */
+    /* CREATE PROJECT - POST JSON */    // Tested 20/09/2014
     // TODO test this function
     public String createProject(String name, String version, String description, List<String> attachments) {
         // create a new project, returns url to project
@@ -427,8 +431,56 @@ public class Client {
     }
 */
     //TODO delete project       - DELETE
-    //TODO fetch resource       - GET
+
+    /* FETCH RESOURCE */ // Tested 23/09/2014
+    public int fetchResource(Long resourceId) {
+        int status = 0;
+        OutputStream outputStream = null;
+        InputStream inputStream = null;
+        String resource = "/resources/" + resourceId.toString();
+        try {
+            HttpResponse response = getDataRequest(resource);
+            status = response.getStatusLine().getStatusCode();
+            if(status == 200) {   // success, download resource
+                String content = response.getFirstHeader("Content-Disposition").getValue();
+                String fileName = content.substring(content.indexOf('=') + 2, content.length() - 1);
+                System.out.println(fileName);
+                outputStream = new FileOutputStream(fileName);
+                inputStream = response.getEntity().getContent();
+                int read = 0;
+                byte[] bytes = new byte[1024];
+         
+                while ((read = inputStream.read(bytes)) != -1) {
+                    outputStream.write(bytes, 0, read);
+                }
+         
+                System.out.println("Done!");
+                inputStream.close();
+                outputStream.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return status;
+    }
     
+    
+    private HttpResponse getDataRequest(String requestContent) {
+        // perform a GET request that returns MediaType.OCTET-STREAM
+        HttpGet request = new HttpGet(target + requestContent);
+        request.addHeader("accept", "application/octet-stream");
+        try {
+            HttpResponse response = client.execute(request);
+            return response;
+        } catch (ClientProtocolException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return null;
+    }
     //TODO delete resource      - DELETE
     /* DELETE RESOURCE - DELETE */
     public String deleteResource(Long resourceId) {
