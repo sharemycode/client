@@ -1,9 +1,11 @@
 package net.sharemycode;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
@@ -24,6 +26,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Client {
@@ -101,6 +104,23 @@ public class Client {
         return response;
     }
 
+    public HttpResponse getJsonRequest(String requestContent) {
+        // perform a GET request that returns a JSON Object
+        HttpGet request = new HttpGet(target + requestContent);
+        request.addHeader("accept", "application/json");
+        try {
+            HttpResponse response = client.execute(request);
+            return response;
+        } catch (ClientProtocolException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
     /*
      * POST REQUESTS
      * HTTP POST Requests: JSON, urlencodedstring
@@ -316,17 +336,21 @@ public class Client {
 */
     /* LIST PROJECTS - GET JSON */
     // TODO test this function
-    public JSONObject listProjects() {
+    public JSONArray listProjects() {
         // return a list of projects (User's projects when Authentication is working)
-        
-        HttpResponse response = getRequest("/projects");
-        String body = null;
+        HttpResponse response = getJsonRequest("/projects");
         try {
-            body = IOUtils.toString(response.getEntity().getContent());
+           BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+           JSONArray json = new JSONArray(br.readLine());
+           return json;
+        } catch (IllegalStateException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         } catch (IOException e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        return new JSONObject(body);
+        return null;
     }
     
     /* FETCH PROJECT - GET JSON */
@@ -334,14 +358,18 @@ public class Client {
     public JSONObject fetchProject(String projectId) {
         // return project data as JSON object
         String resource = "/projects/" + projectId;
-        HttpResponse response = getRequest(resource);
+        HttpResponse response = getJsonRequest(resource);
         String body = null;
         try {
             body = IOUtils.toString(response.getEntity().getContent());
+            if(body == null) // 404
+                return null;
+            else
+                return new JSONObject(body);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return new JSONObject(body);
+        return null;
     }
     
     /* LIST RESOURCES - GET JSON*/

@@ -10,6 +10,7 @@ import junit.framework.TestSuite;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
@@ -38,8 +39,12 @@ extends TestCase
         tests.addTest(new AppTest("getRequestTest"));
         tests.addTest(new AppTest("postFormRequestTest"));
         tests.addTest(new AppTest("postJSONTest"));
+        tests.addTest(new AppTest("createUserTest"));
+        tests.addTest(new AppTest("createProjectTest"));
         //tests.addTest(new AppTest("postLoginTest"));
-        tests.addTest(new AppTest("fileUploadTest"));
+        //tests.addTest(new AppTest("fileUploadTest"));
+        tests.addTest(new AppTest("listProjectsTest"));
+        tests.addTest(new AppTest("fetchProjectTest"));
         return tests;
     }
 
@@ -92,6 +97,18 @@ extends TestCase
         assertTrue(response.getStatusLine().getStatusCode() == 200);
     }
     
+    public void createUserTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        String result = test.createUser("testUser", "test@test.com", "test@test.com", "test", "test", "testFirstName", "testLastName");
+        assertEquals("Expected 'Registration Successful!'", "Registration Successful!", result);
+    }
+    
+    public void createProjectTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        String url = test.createProject("testProject", "0.0.Test", "This is a test Project", null);
+        assertTrue(url.length() == 6);  // returns a 6 character URL
+    }
+    
     public void fileUploadTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         String filePath = "/home/larchibald/test.txt";
@@ -104,5 +121,19 @@ extends TestCase
         }
         assertTrue(result.getBoolean("success"));
         
+    }
+    
+    public void listProjectsTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        JSONArray result = test.listProjects();
+        System.out.println(result.toString());
+        assertNotNull(result);
+    }
+    
+    public void fetchProjectTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        JSONObject result = test.fetchProject("8ac081c248a02e440148a0398c2c0000");
+        System.out.println(result.toString());
+        assertNotNull(result);
     }
 }

@@ -70,17 +70,17 @@
 		<groupId>org.apache.httpcomponents</groupId>
 		<artifactId>httpmime</artifactId>
 	<version>4.3.5</version>
-</dependency>
-<dependency>
-	<groupId>org.apache.httpcomponents</groupId>
-	<artifactId>httpcore</artifactId>
-	<version>4.3.2</version>
-</dependency>
-<dependency>
-	<groupId>org.apache.httpcomponents</groupId>
-	<artifactId>httpclient</artifactId>
-	<version>4.3.5</version>
-</dependency>
+	</dependency>
+	<dependency>
+		<groupId>org.apache.httpcomponents</groupId>
+		<artifactId>httpcore</artifactId>
+		<version>4.3.2</version>
+	</dependency>
+	<dependency>
+		<groupId>org.apache.httpcomponents</groupId>
+		<artifactId>httpclient</artifactId>
+		<version>4.3.5</version>
+	</dependency>
 	<!--  TESTING -->
     <dependency>
       <groupId>junit</groupId>
