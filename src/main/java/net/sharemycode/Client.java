@@ -1,34 +1,26 @@
 package net.sharemycode;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.List;
 
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.GenericType;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import net.sharemycode.model.Project;	// JavaBean entities
+import net.sharemycode.model.ProjectResource;
+
 import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Client {
@@ -41,7 +33,8 @@ public class Client {
 
     // Client instance variables
     private String target;
-    private HttpClient client;
+    private javax.ws.rs.client.Client client;
+
 
     /*
      * TEST MAIN METHOD - development only
@@ -62,11 +55,16 @@ public class Client {
      * CLIENT CONSTRUCTOR
      * Create HTTPClient with server details
      */
-    @SuppressWarnings("deprecation")
     public Client(String domain, String directory, String RESTEndpoint) {
         // Constructor: create HTTPClient
         this.target = "http://" + domain + directory + RESTEndpoint;
-        this.client = new DefaultHttpClient();
+        this.client = ClientBuilder.newClient();
+    }
+
+    /* CLOSE CLIENT */
+    public void close() {
+        // closes REST Client connection
+        client.close();
     }
     /*
      * TEST CONNECTION
@@ -75,138 +73,65 @@ public class Client {
     public Boolean testConnection() throws ClientProtocolException, IOException {
         //test connection to the server
         String requestContent = "/system/test";
-        HttpGet request = new HttpGet(target + requestContent);	// set up the request
-        HttpResponse response = client.execute(request);
-        request.releaseConnection();							// release the connection
-        if(response.getStatusLine().getStatusCode() == 200) {	// if connection successful, return true
+
+        Response response = client.target(target).path(requestContent).request(MediaType.TEXT_PLAIN).get();
+        System.out.println(response.readEntity(String.class));
+        if(response.getStatus() == 200) {	// if connection successful, return true
+            response.close();	// release the connection
             return true;
         } else {
+            response.close();
             return false;
         }
     }
 
     /*
-     * GET REQUEST
-     * Standard HTTP GET Request
-     * Tested: 16/09/2014
-     */
-    public HttpResponse getRequest(String requestContent) {
-        // perform a GET request. Client must decode the response
-        HttpGet request = new HttpGet(target + requestContent);
-        HttpResponse response = null;
-        try {
-            response = client.execute(request);
-        } catch (ClientProtocolException e) {
-            System.err.println("Error: ClientProtocolException when GETing from " + requestContent);
-            e.printStackTrace();
-        } catch (IOException e) {
-            System.err.println("Error: IOException when GETing from " + requestContent);
-            e.printStackTrace();
-        }
-        request.releaseConnection();
-        return response;
-    }
-
-    /* GET JSON REQUEST */
-    // TODO Unit Test for this function (tested as part of listResources 23/09/2014)
-    public HttpResponse getJsonRequest(String requestContent) {
-        // perform a GET request that returns a JSON Object
-        HttpGet request = new HttpGet(target + requestContent);
-        request.addHeader("accept", "application/json");
-        try {
-            HttpResponse response = client.execute(request);
-            return response;
-        } catch (ClientProtocolException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return null;
-    }
-    
-    /*
-     * POST REQUESTS
-     * HTTP POST Requests: JSON, urlencodedstring
-     * Scheduled for removal: multipart(HTTPEntity)
+     * *********************************************************
+     * PROCEDURES
+     * *********************************************************
      */
 
-    /* POST JSON */ // Tested 16/09/2014
-    public HttpResponse postRequest(String postContent, JSONObject postData) {
-        // submit a POST request with JSON data
-        HttpPost request = new HttpPost(target + postContent);
-        StringEntity input = null;
-        HttpResponse response = null;
-        try {
-            input = new StringEntity(postData.toString());
-            request.addHeader("content-type", "application/json");
-            request.setEntity(input);
+    /* --- POST REQUESTS --- */
 
-            response = client.execute(request);
-        } catch (UnsupportedEncodingException e1) {
-            System.err.println("Error: UnsupportedEncodingException when POSTing to " + postContent);
-            e1.printStackTrace();
-        } catch (ClientProtocolException e) {
-            System.err.println("Error: ClientProtocolException when POSTing to " + postContent);
-            e.printStackTrace();
-        } catch (IOException e) {
-            System.err.println("Error: IOException when POSTing to " + postContent);
-            e.printStackTrace();
-        }
-        request.releaseConnection(); // release the connection
-        return response;
-    }
-    /* POST URLENCODEDSTRING */
-    public HttpResponse postRequest(String postContent, String postData) {
-        // submit a POST request with urlencodedstring data
-        HttpPost request = new HttpPost(target + postContent);
-        StringEntity input = null;
-        HttpResponse response = null;
-        try {
-            input = new StringEntity(postData);
-            request.addHeader("content-type", "application/x-www-form-urlencoded");
-            request.setEntity(input);
-            response = client.execute(request);
-        } catch (UnsupportedEncodingException e1) {
-            System.err.println("Error: UnsupportedEncodingException when POSTing to " + postContent);
-            e1.printStackTrace();
-        } catch (ClientProtocolException e) {
-            System.err.println("Error: ClientProtocolException when POSTing to " + postContent);
-            e.printStackTrace();
-        } catch (IOException e) {
-            System.err.println("Error: IOException when POSTing to " + postContent);
-            e.printStackTrace();
-        }
-        request.releaseConnection(); // release the connection
-        return response;
+    /* CREATE USER - POST JSON */	// Tested: 23/09/2014
+    public String createUser(String username, String email, String emailc, String password, String passwordc, String firstName, String lastName) {
+        // register a new user
+        JSONObject userJSON = new JSONObject();
+        userJSON.put("username", username);
+        userJSON.put("email", email);
+        userJSON.put("emailc", emailc);
+        userJSON.put("password", password);
+        userJSON.put("passwordc", passwordc);
+        userJSON.put("firstName", firstName);
+        userJSON.put("lastName", lastName);
+        String data = userJSON.toString();
+        Response response = client.target(target).path("/register").request(MediaType.TEXT_PLAIN).post(Entity.json(data));
+        String message = response.readEntity(String.class);
+        response.close();
+        return message;
     }
 
-    /* POST MULTIPART */
-    public HttpResponse postRequest(String postContent, HttpEntity postData) {
-        // submit a POST request with Multipart data. Assumes HttpEntity already created with MultipartBuilder
-        HttpPost request = new HttpPost(target + postContent);
-        request.setEntity(postData);
-        request.addHeader("content-type", postData.getContentType().getValue());
-        request.addHeader("accept-encoding", "multipart/form-data");
-        HttpResponse response = null;
-        try {
-            response = client.execute(request);
-        } catch (ClientProtocolException e) {
-            System.err.println("Error: ClientProtocolException when POSTing to " + postContent);
-            e.printStackTrace();
-        } catch (IOException e) {
-            System.err.println("Error: IOException when POSTing to " + postContent);
-            e.printStackTrace();
-        }
-        request.releaseConnection(); // release the connection
-        return response;
+    /* CREATE PROJECT - POST JSON */    // Tested 20/09/2014
+    // TODO test this function
+    public String createProject(String name, String version, String description, List<String> attachments) {
+        // create a new project, returns url to project
+        JSONObject project = new JSONObject();
+        project.put("name", name);
+        project.put("version", version);
+        project.put("description", description);
+        project.put("attachments", attachments);    // attachments are Long encoded as String
+        // TODO attachments
+        String data = project.toString();
+        Response response = client.target(target).path("/projects").request(MediaType.TEXT_PLAIN).post(Entity.json(data));
+        String message = response.readEntity(String.class);
+        response.close();
+        return message;
     }
 
     public JSONObject fileUpload(String path) throws IOException {
-        
+
         File file = new File(path);
-        
+
         URL url = new URL("http://" + DIRECTORY + DOMAIN + UPLOADENDPOINT);
         HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
         httpConnection.setUseCaches(false);
@@ -214,12 +139,12 @@ public class Client {
         httpConnection.setRequestMethod("POST");
         //httpConnection.setRequestProperty("Content-Type", "application/octet-stream");
         httpConnection.setRequestProperty("filename", file.getName());
-        
+
         // open output stream of HTTP connection for writing data
         OutputStream outputStream = httpConnection.getOutputStream();
         // create input stream for reading from file
         FileInputStream inputStream = new FileInputStream(file);
-        
+
         byte[] buffer = new byte[1024];
         int bytesRead = -1;
         System.out.println("DEBUG: Writing data to server");
@@ -240,256 +165,117 @@ public class Client {
         System.out.println("Server's response: " + message);
         return new JSONObject(message);
     }
-    
-    // TODO DELETE REQUEST
-    
-    // TODO PUT REQUEST
-    
-    /* 
-     * *********************************************************
-     * PROCEDURES
-     * *********************************************************
-     */
-    
-    /*
-     * CREATE USER - POST JSON
-     * Register new user
-     * Tested: 23/09/2014
-     */
-    public String createUser(String username, String email, String emailc, String password, String passwordc, String firstName, String lastName) {
 
-        JSONObject userJSON = new JSONObject();
-        userJSON.put("username", username);
-        userJSON.put("email", email);
-        userJSON.put("emailc", emailc);
-        userJSON.put("password", password);
-        userJSON.put("passwordc", passwordc);
-        userJSON.put("firstName", firstName);
-        userJSON.put("lastName", lastName);
-        HttpResponse response = postRequest("/register", userJSON);
-        String message = null;
-        try {
-            message = IOUtils.toString(response.getEntity().getContent());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return message;
-    }
-    
-    /*
-     * PUBLISH PROJECT - POST MULTIPART (OLD)
-     * Share project from local files, upload as zip
-     */
-/*   public HttpResponse createProject(String name, String version, String description, String projectPath){
-        // create a HttpEntity from project information and zip archive
-        MultipartEntityBuilder multipart = MultipartEntityBuilder.create();
-        multipart.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-        // add the text parts first
-        multipart.addTextBody("pname", name, ContentType.APPLICATION_FORM_URLENCODED);
-        multipart.addTextBody("version", version, ContentType.APPLICATION_FORM_URLENCODED);
-        multipart.addTextBody("description", description, ContentType.APPLICATION_FORM_URLENCODED);
-        // now prepare the file part
-        try {
-            File file = new File(projectPath);
-            if (file.exists()) {
-                if(file.isFile()){
-                    ZipFile projectZip = new ZipFile(projectPath);
-                    if(projectZip.isValidZipFile()) {
-                        // valid zip file, upload it
-                        multipart.addBinaryBody("projectFile", file);
-                    } else {
-                        System.err.println("Error: Attempt to upload invalid file");
-                        return null;
-                    }
-                } else if(file.isDirectory()) {
-                    // create a zip file and upload
-                    String newPath = projectPath + "/" + name + "_" +
-                            System.currentTimeMillis() + ".zip";	// ensure that name is unique
-                    ZipFile projectZip = new ZipFile(newPath);
-                    ZipParameters parameters = new ZipParameters();
-                    parameters.setCompressionMethod(Zip4jConstants.COMP_DEFLATE);
-                    parameters.setCompressionLevel(Zip4jConstants.DEFLATE_LEVEL_NORMAL);
-                    parameters.setEncryptFiles(false);
-                    projectZip.createZipFileFromFolder(file, parameters, false, 0l);
-                    File projectFile = new File(newPath);
-                    // now test if valid, then upload
-                    if(projectZip.isValidZipFile()) {
-                        // valid zip file, upload it
-                        multipart.addBinaryBody("projectFile", projectFile);
-                    } else {
-                        System.err.println("Error: Attempt to upload invalid file");
-                        return null;
-                    }
-                } else {
-                    System.err.println("Error: Unknown error occured");
-                    return null;
-                }
-            }else {
-                System.err.println("Error: File/path does not exist. Please check the path and try again");
-                return null;
-            }
-        } catch (ZipException e) {
-            System.err.println("Error checking project file. Ensure that project is a .zip file, or a writable directory");
-            e.printStackTrace();
-        }
-
-        HttpEntity projectEntity = multipart.build();
-        HttpResponse response = postRequest("/project/create", projectEntity);
-
-        return response;
-
-    }
-*/
-    /* LIST PROJECTS - GET JSON */  // Tested 23/09/2014
-    public JSONArray listProjects() {
-        // return a list of projects (User's projects when Authentication is working)
-        HttpResponse response = getJsonRequest("/projects");
-        try {
-           BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-           JSONArray json = new JSONArray(br.readLine());
-           return json;
-        } catch (IllegalStateException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return null;
-    }
-    
-    /* FETCH PROJECT - GET JSON */  // Tested 23/09/2014
-    public JSONObject fetchProject(String projectId) {
-        // return project data as JSON object
-        String resource = "/projects/" + projectId;
-        HttpResponse response = getJsonRequest(resource);
-        String body = null;
-        try {
-            body = IOUtils.toString(response.getEntity().getContent());
-            if(body == null) // 404
-                return null;
-            else
-                return new JSONObject(body);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-    
-    /* LIST RESOURCES - GET JSON*/  // Tested 23/09/2014
-    public JSONArray listResources(String projectId) {
-        // Return a list of resources for a project as JSON
-        String resource = "/projects/" + projectId + "/resources";
-        HttpResponse response = getJsonRequest(resource);
-        String body = null;
-        try {
-            body = IOUtils.toString(response.getEntity().getContent());
-            return new JSONArray(body);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return null;
-    }
-    
-    /* CREATE PROJECT - POST JSON */    // Tested 20/09/2014
-    // TODO test this function
-    public String createProject(String name, String version, String description, List<String> attachments) {
-        // create a new project, returns url to project
-        JSONObject project = new JSONObject();
-        project.put("name", name);
-        project.put("version", version);
-        project.put("description", description);
-        project.put("attachments", attachments);    // attachments are Long encoded as String
-        // TODO attachments
-        HttpResponse response = postRequest("/projects/", project);
-        // returns unique URL of project
-        String message = null;
-        try {
-            message = IOUtils.toString(response.getEntity().getContent());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return message;
-    }
-    
     // TODO Create attachment
     /* Upload Attachment */
-/*    public String createAttachment(String filePath) {
+    /*    public String createAttachment(String filePath) {
         // upload attachment, return Long id encoded as String
         File file = new File(filePath);
-        
+
         // TODO AJAX Upload to UPLOADENDPOINT
-        
+
         HttpRequest response;
         String message = IOUtils.toString(response.getEntity().getContent());
         JSONObject result = new JSONObject(message);
         if(result.getBoolean("success"))
             return result.getString("id");
-        else 
+        else
             return null;
     }
-*/
-    //TODO delete project       - DELETE
+     */
+
+    /* --- GET REQUESTS --- */
+
+    /* LIST PROJECTS - GET JSON */  // Tested 23/09/2014
+    public List<Project> listProjects() {
+        // return a list of projects (User's projects when Authentication is working)
+        GenericType<List<Project>> projectType = new GenericType<List<Project>>() {};
+        List<Project> projects =  client.target(target).path("/projects").request().get(projectType);
+        return projects;
+    }
+
+    /* FETCH PROJECT - GET JSON */  // Tested 23/09/2014
+    public Project fetchProject(String projectId) {
+        // return project data as JSON object
+        String resource = "/projects/{projectId}";
+        Project project = client.target(target).path(resource)
+                .resolveTemplate("projectId", projectId).request().get(Project.class);
+        return project;
+    }
+
+    /* LIST RESOURCES - GET JSON*/  // Tested 23/09/2014
+    public List<ProjectResource> listResources(String projectId) {
+        // Return a list of resources for a project as JSON
+        String resource = "/projects/{projectId}/resources";
+        GenericType<List<ProjectResource>> resourceType = new GenericType<List<ProjectResource>>() {};
+        List<ProjectResource> resources =  client.target(target).path(resource)
+                .resolveTemplate("projectId", projectId).request().get(resourceType);
+        return resources;
+    }
 
     /* FETCH RESOURCE */ // Tested 23/09/2014
     public int fetchResource(Long resourceId) {
         int status = 0;
         OutputStream outputStream = null;
         InputStream inputStream = null;
-        String resource = "/resources/" + resourceId.toString();
+        String resource = "/resources/{resourceId}";
         try {
-            HttpResponse response = getDataRequest(resource);
-            status = response.getStatusLine().getStatusCode();
+            Response response = client.target(target).path(resource)
+                    .resolveTemplate("resourceId", resourceId)
+                    .request(MediaType.APPLICATION_OCTET_STREAM).get();
+            status = response.getStatus();
             if(status == 200) {   // success, download resource
-                String content = response.getFirstHeader("Content-Disposition").getValue();
+                String content = response.getHeaderString("Content-Disposition");
                 String fileName = content.substring(content.indexOf('=') + 2, content.length() - 1);
                 System.out.println(fileName);
                 outputStream = new FileOutputStream(fileName);
-                inputStream = response.getEntity().getContent();
+                inputStream = response.readEntity(InputStream.class);
                 int read = 0;
                 byte[] bytes = new byte[1024];
-         
+
                 while ((read = inputStream.read(bytes)) != -1) {
                     outputStream.write(bytes, 0, read);
                 }
-         
+
                 System.out.println("Done!");
                 inputStream.close();
                 outputStream.close();
+                response.close();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
         return status;
     }
-    
-    
-    private HttpResponse getDataRequest(String requestContent) {
-        // perform a GET request that returns MediaType.OCTET-STREAM
-        HttpGet request = new HttpGet(target + requestContent);
-        request.addHeader("accept", "application/octet-stream");
-        try {
-            HttpResponse response = client.execute(request);
-            return response;
-        } catch (ClientProtocolException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return null;
+
+    /* --- PUT REQUESTS --- */
+    // TODO UpdateProject
+    // TODO UpdateResource
+    // TODO UpdateUser
+
+    /* --- DELETE REQUESTS --- */
+
+    //TODO delete project       - DELETE
+    /* DELETE PROJECT - DELETE */
+    public int deleteProject(String projectId) {
+        String resource = "/projects/{projectId}";
+        Response response = client.target(target).path(resource)
+                .resolveTemplate("projectId", projectId).request().delete();
+        int status = response.getStatus();
+        return status;
     }
+
     //TODO delete resource      - DELETE
     /* DELETE RESOURCE - DELETE */
-    public String deleteResource(Long resourceId) {
-        String resource = "/resources/" + resourceId;
-        //HttpResponse response = deleteRequest(resource);
-        return null;
+    public int deleteResource(Long resourceId) {
+        String resource = "/resources/{resourceId}";
+        Response response = client.target(target).path(resource)
+                .resolveTemplate("resourceId", resourceId).request().delete();
+        int status = response.getStatus();
+        return status;
     }
-    
-    
+
+
     //TODO user login   - POST
     //TODO user logout  - GET
     //TODO update authorisation - POST

@@ -1,17 +1,15 @@
 package net.sharemycode;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.util.List;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import net.sharemycode.model.Project;
+import net.sharemycode.model.ProjectResource;
 
-import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  * Unit test for simple App.
@@ -36,9 +34,6 @@ extends TestCase
     {
         TestSuite tests = new TestSuite(AppTest.class);
         tests.addTest(new AppTest("connectionTest"));
-        tests.addTest(new AppTest("getRequestTest"));
-        tests.addTest(new AppTest("postFormRequestTest"));
-        tests.addTest(new AppTest("postJSONTest"));
         tests.addTest(new AppTest("createUserTest"));
         tests.addTest(new AppTest("createProjectTest"));
         //tests.addTest(new AppTest("postLoginTest"));
@@ -47,6 +42,7 @@ extends TestCase
         tests.addTest(new AppTest("fetchProjectTest"));
         tests.addTest(new AppTest("listResourcesTest"));
         tests.addTest(new AppTest("fetchResourceTest"));
+        tests.addTest(new AppTest("closeClientTest"));
         return tests;
     }
 
@@ -67,50 +63,25 @@ extends TestCase
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         assertTrue(test.testConnection());
     }
-
-    public void getRequestTest() throws ClientProtocolException, IOException {
-        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
-        // test a get request
-        HttpResponse response = test.getRequest("/system/test");
-        BufferedReader rd = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
-        String line = rd.readLine();
-
-        assertEquals("Request must return correct response from server", "Hello client! Connection successful!", line);
-    }
-    
-    public void postFormRequestTest() throws IOException {
-        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
-        HttpResponse response = test.postRequest("/system/test/form", "name=hello&value=world");
-        assertEquals("Expected 200", 200, response.getStatusLine().getStatusCode());
-    }
-
-    public void postJSONTest() throws IOException {
-        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
-        JSONObject userJSON = new JSONObject();
-        userJSON.put("name", "hello");
-        userJSON.put("value", "world");
-        HttpResponse response = test.postRequest("/system/test/json", userJSON);
-        assertEquals("Expected 200", 200, response.getStatusLine().getStatusCode());
-    }
-
+    /*
     public void postLoginTest() throws ClientProtocolException, IOException {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         HttpResponse response = test.postRequest("/user/login", "username=test@password=testpassword");
         assertTrue(response.getStatusLine().getStatusCode() == 200);
     }
-    
+     */
     public void createUserTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         String result = test.createUser("testUser", "test@test.com", "test@test.com", "test", "test", "testFirstName", "testLastName");
-        assertEquals("Expected 'Registration Successful!'", "Registration Successful!", result);
+        assertEquals("User registration failed", "Registration successful!", result);
     }
-    
+
     public void createProjectTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         String url = test.createProject("testProject", "0.0.Test", "This is a test Project", null);
         assertTrue(url.length() == 6);  // returns a 6 character URL
     }
-    
+    /*
     public void fileUploadTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         String filePath = "/home/larchibald/test.txt";
@@ -122,32 +93,49 @@ extends TestCase
             e.printStackTrace();
         }
         assertTrue(result.getBoolean("success"));
-        
+
     }
-    
+     */
     public void listProjectsTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
-        JSONArray result = test.listProjects();
-        System.out.println(result.toString());
-        assertNotNull(result);
+        List<Project> projects = test.listProjects();
+        System.out.println(projects.get(0).getName());
+        assertTrue(projects.size() > 0);	// at least one project is returned
     }
-    
+
     public void fetchProjectTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
-        JSONObject result = test.fetchProject("8ac081c248a02e440148a0398c2c0000");
-        System.out.println(result.toString());
-        assertNotNull(result);
+        Project project = test.fetchProject("2c90518148a504630148a53e3e7d0000");
+        System.out.println(project.getName());
+        assertNotNull(project);
     }
-    
+
     public void listResourcesTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
-        JSONArray result = test.listResources("8ac081c248a02e440148a0ff40850008");
-        System.out.println(result.getJSONObject(0).toString());
-        assertNotNull(result);
+        List<ProjectResource> resources = test.listResources("2c90518148a504630148a55f4f050001");
+        System.out.println(resources.get(0).getName());
+        assertTrue(resources.size() > 0);
     }
-    
+
     public void fetchResourceTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
-        assertTrue(test.fetchResource(30L) == 200);
+        assertTrue(test.fetchResource(7L) == 200);
+    }
+
+    public void closeClientTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.close();
+        try {
+            test.testConnection();
+            fail("This test should have failed");
+        } catch (IllegalStateException e) {
+            assertTrue(true);
+        } catch (ClientProtocolException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 }
