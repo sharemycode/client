@@ -15,8 +15,8 @@ import org.apache.http.client.ClientProtocolException;
  * Unit test for simple App.
  */
 public class AppTest
-extends TestCase
-{
+extends TestCase {
+    
     /**
      * Create the test case
      *
@@ -35,8 +35,10 @@ extends TestCase
         TestSuite tests = new TestSuite(AppTest.class);
         tests.addTest(new AppTest("connectionTest"));
         tests.addTest(new AppTest("createUserTest"));
+        tests.addTest(new AppTest("basicAuthTest"));
+        tests.addTest(new AppTest("loginTest"));
+        tests.addTest(new AppTest("getAuthStatusTest"));
         tests.addTest(new AppTest("createProjectTest"));
-        //tests.addTest(new AppTest("postLoginTest"));
         //tests.addTest(new AppTest("fileUploadTest"));
         tests.addTest(new AppTest("listProjectsTest"));
         tests.addTest(new AppTest("fetchProjectTest"));
@@ -59,25 +61,46 @@ extends TestCase
     public static final String RESTENDPOINT = "/sharemycode/rest";     // REST endpoint directory.
     public static final String UPLOADENDPOINT = "/sharemycode/upload"; // File upload endpoint
 
+    /* CONNECTION TEST */
     public void connectionTest() throws ClientProtocolException, IOException {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         assertTrue(test.testConnection());
     }
-    /*
-    public void postLoginTest() throws ClientProtocolException, IOException {
-        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
-        HttpResponse response = test.postRequest("/user/login", "username=test@password=testpassword");
-        assertTrue(response.getStatusLine().getStatusCode() == 200);
-    }
-     */
+
+    /* CREATE USER TEST */
     public void createUserTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         String result = test.createUser("testUser", "test@test.com", "test@test.com", "test", "test", "testFirstName", "testLastName");
         assertEquals("User registration failed", "Registration successful!", result);
     }
 
+    /* BASIC AUTHENTICATION TEST */
+    public void basicAuthTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        String token = Authenticator.httpBasicAuth("testUser", "test", test.getClient());
+        if(token == null)
+            fail("Authentication must have failed");
+        assertTrue(token.length() > 0);
+    }
+
+    /* LOGIN TEST */ // Requires createUser() to be completed
+    public void loginTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        String result = test.login("testUser", "test");
+        assertTrue(result.equals("Login successful!"));
+    }
+    
+    public void getAuthStatusTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        String status = test.getAuthStatus();
+        assertEquals("Expected true", "true", status);
+    }
+    
+    /* CREATE PROJECT TEST */
     public void createProjectTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
         String url = test.createProject("testProject", "0.0.Test", "This is a test Project", null);
         assertTrue(url.length() == 6);  // returns a 6 character URL
     }
@@ -96,32 +119,49 @@ extends TestCase
 
     }
      */
+    /* LIST PROJECTS TEST */
     public void listProjectsTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
         List<Project> projects = test.listProjects();
-        System.out.println(projects.get(0).getName());
+        for (Project p : projects) {
+            System.out.println("Project Name: " + p.getName() +
+                    ", Owner: " + p.getOwner() + 
+                    ", Version: " + p.getVersion() +
+                    ", URL:" + p.getUrl() + 
+                    ", Description: " + p.getDescription());
+        }
         assertTrue(projects.size() > 0);	// at least one project is returned
     }
 
+    /* FETCH PROJECT TEST */    // requires a valid projectId
     public void fetchProjectTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
         Project project = test.fetchProject("2c90518148a504630148a53e3e7d0000");
-        System.out.println(project.getName());
         assertNotNull(project);
+        System.out.println(project.getName());
     }
 
+    /* LIST RESOURCES TEST */    // requires a valid projectId
     public void listResourcesTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
         List<ProjectResource> resources = test.listResources("2c90518148a504630148a55f4f050001");
-        System.out.println(resources.get(0).getName());
+        if(resources == null)
+            fail("Resources could not be retrieved. No resources exist.");
         assertTrue(resources.size() > 0);
+        System.out.println(resources.get(0).getName());
     }
 
+    /* FETCH RESOURCE TEST */    // requires a valid file resourceId
     public void fetchResourceTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
         assertTrue(test.fetchResource(7L) == 200);
     }
 
+    /* CLOSE CLIENT TEST */
     public void closeClientTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.close();
@@ -131,11 +171,10 @@ extends TestCase
         } catch (IllegalStateException e) {
             assertTrue(true);
         } catch (ClientProtocolException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
+
 }

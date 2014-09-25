@@ -10,8 +10,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
 
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Configuration;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -20,7 +23,9 @@ import net.sharemycode.model.Project;	// JavaBean entities
 import net.sharemycode.model.ProjectResource;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.http.client.ClientProtocolException;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public class Client {
@@ -32,9 +37,10 @@ public class Client {
     public static final int MAX_UPLOAD = 10485760; // 10MB
 
     // Client instance variables
-    private String target;
+    private String restTarget;
     private javax.ws.rs.client.Client client;
-
+    private WebTarget RESTClient;
+    
 
     /*
      * TEST MAIN METHOD - development only
@@ -57,8 +63,13 @@ public class Client {
      */
     public Client(String domain, String directory, String RESTEndpoint) {
         // Constructor: create HTTPClient
-        this.target = "http://" + domain + directory + RESTEndpoint;
-        this.client = ClientBuilder.newClient();
+        restTarget = "http://" + domain + directory + RESTEndpoint;
+        client = ClientBuilder.newClient();
+        RESTClient = client.target(restTarget);
+    }
+    
+    public WebTarget getClient() {
+        return RESTClient;
     }
 
     /* CLOSE CLIENT */
@@ -74,7 +85,7 @@ public class Client {
         //test connection to the server
         String requestContent = "/system/test";
 
-        Response response = client.target(target).path(requestContent).request(MediaType.TEXT_PLAIN).get();
+        Response response = RESTClient.path(requestContent).request(MediaType.TEXT_PLAIN).get();
         System.out.println(response.readEntity(String.class));
         if(response.getStatus() == 200) {	// if connection successful, return true
             response.close();	// release the connection
@@ -105,7 +116,7 @@ public class Client {
         userJSON.put("firstName", firstName);
         userJSON.put("lastName", lastName);
         String data = userJSON.toString();
-        Response response = client.target(target).path("/register").request(MediaType.TEXT_PLAIN).post(Entity.json(data));
+        Response response = RESTClient.path("/register").request(MediaType.TEXT_PLAIN).post(Entity.json(data));
         String message = response.readEntity(String.class);
         response.close();
         return message;
@@ -122,7 +133,7 @@ public class Client {
         project.put("attachments", attachments);    // attachments are Long encoded as String
         // TODO attachments
         String data = project.toString();
-        Response response = client.target(target).path("/projects").request(MediaType.TEXT_PLAIN).post(Entity.json(data));
+        Response response = RESTClient.path("/projects").request(MediaType.TEXT_PLAIN).post(Entity.json(data));
         String message = response.readEntity(String.class);
         response.close();
         return message;
@@ -186,11 +197,18 @@ public class Client {
 
     /* --- GET REQUESTS --- */
 
+    /* GET AUTH STATUS */
+    public String getAuthStatus() {
+        Response response = RESTClient.path("/auth/status").request().get();
+        String message = response.readEntity(String.class);
+        return message;
+    }
+    
     /* LIST PROJECTS - GET JSON */  // Tested 23/09/2014
     public List<Project> listProjects() {
         // return a list of projects (User's projects when Authentication is working)
         GenericType<List<Project>> projectType = new GenericType<List<Project>>() {};
-        List<Project> projects =  client.target(target).path("/projects").request().get(projectType);
+        List<Project> projects =  RESTClient.path("/projects").request().get(projectType);
         return projects;
     }
 
@@ -198,9 +216,14 @@ public class Client {
     public Project fetchProject(String projectId) {
         // return project data as JSON object
         String resource = "/projects/{projectId}";
-        Project project = client.target(target).path(resource)
-                .resolveTemplate("projectId", projectId).request().get(Project.class);
-        return project;
+        try {
+            Project project = RESTClient.path(resource)
+                    .resolveTemplate("projectId", projectId).request().get(Project.class);
+            return project;
+        } catch (NotFoundException e) {
+            System.err.println("Resource: rest/projects/" + projectId + "\n" + e);
+            return null;
+        }
     }
 
     /* LIST RESOURCES - GET JSON*/  // Tested 23/09/2014
@@ -208,9 +231,14 @@ public class Client {
         // Return a list of resources for a project as JSON
         String resource = "/projects/{projectId}/resources";
         GenericType<List<ProjectResource>> resourceType = new GenericType<List<ProjectResource>>() {};
-        List<ProjectResource> resources =  client.target(target).path(resource)
-                .resolveTemplate("projectId", projectId).request().get(resourceType);
-        return resources;
+        try {
+            List<ProjectResource> resources =  RESTClient.path(resource)
+                    .resolveTemplate("projectId", projectId).request().get(resourceType);
+            return resources;
+        } catch (NotFoundException e) {
+            System.err.println("Resource: rest/projects/" + projectId + "/resources\n" + e);
+            return null;
+        }
     }
 
     /* FETCH RESOURCE */ // Tested 23/09/2014
@@ -220,7 +248,7 @@ public class Client {
         InputStream inputStream = null;
         String resource = "/resources/{resourceId}";
         try {
-            Response response = client.target(target).path(resource)
+            Response response = RESTClient.path(resource)
                     .resolveTemplate("resourceId", resourceId)
                     .request(MediaType.APPLICATION_OCTET_STREAM).get();
             status = response.getStatus();
@@ -244,6 +272,9 @@ public class Client {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (NotFoundException e) {
+            System.err.println("Resource: rest/resources/" + resourceId + "\n" + e);
+            return 404;
         }
         return status;
     }
@@ -259,7 +290,7 @@ public class Client {
     /* DELETE PROJECT - DELETE */
     public int deleteProject(String projectId) {
         String resource = "/projects/{projectId}";
-        Response response = client.target(target).path(resource)
+        Response response = RESTClient.path(resource)
                 .resolveTemplate("projectId", projectId).request().delete();
         int status = response.getStatus();
         return status;
@@ -269,7 +300,7 @@ public class Client {
     /* DELETE RESOURCE - DELETE */
     public int deleteResource(Long resourceId) {
         String resource = "/resources/{resourceId}";
-        Response response = client.target(target).path(resource)
+        Response response = RESTClient.path(resource)
                 .resolveTemplate("resourceId", resourceId).request().delete();
         int status = response.getStatus();
         return status;
@@ -277,10 +308,36 @@ public class Client {
 
 
     //TODO user login   - POST
+    public String login(String username, String password) {
+        // submit login request
+        if(username == null || password == null)
+            return "Username and password cannot be empty";
+        String token = Authenticator.httpBasicAuth(username, password, RESTClient);
+        if (token != null) {
+            RESTClient.register(new Authenticator(token));
+            return "Login successful!";
+        } else
+            return "Login failed";
+    }
     //TODO user logout  - GET
     //TODO update authorisation - POST
     //TODO remove authorisation - GET?
     //TODO publish resource     - POST
     //TODO subscribe to resource updates - POST/WS?
     //TODO publish resource update  - POST/WS?
+    
+    /* HTTP BASIC AUTHENTICATION */
+    public String httpBasicAuth(String username, String password) {
+        try {
+            String encoding = Base64.encodeBase64String(new String(username.toLowerCase() + ":" + password.toLowerCase()).getBytes("UTF-8"));
+            Response response = RESTClient.path("/auth/login").request()
+                    .header("Authorization", "Basic " + encoding)
+                    .post(Entity.text(""));
+            String token = response.readEntity(String.class);
+            return token;
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
