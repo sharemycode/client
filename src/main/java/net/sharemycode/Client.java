@@ -18,9 +18,12 @@ import javax.ws.rs.core.Configuration;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.xml.ws.soap.AddressingFeature.Responses;
 
 import net.sharemycode.model.Project;	// JavaBean entities
+import net.sharemycode.model.ProjectAccess;
 import net.sharemycode.model.ProjectResource;
+import net.sharemycode.model.ResourceAccess;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.codec.binary.Base64;
@@ -277,6 +280,28 @@ public class Client {
             return 404;
         }
         return status;
+    }
+    
+    /* GET RESOURCE ACCESS LEVEL */
+    public ResourceAccess.AccessLevel getResourceAccessLevel(Long resourceId) {
+        String resource = "/resources/{resourceId}/access";
+        ResourceAccess resourceAccess = RESTClient.path(resource).resolveTemplate("resourceId", resourceId)
+                .request().get(ResourceAccess.class);
+        if(resourceAccess != null)
+            return resourceAccess.getAccessLevel();
+        else
+            return null;
+    }
+    
+    /* GET PROJECT ACCESS LEVEL */
+    public ProjectAccess.AccessLevel getProjectAccessLevel(String projectId) {
+        String resource = "/projects/{projectId}/access";
+        ProjectAccess projectAccess = RESTClient.path(resource).resolveTemplate("projectId", projectId)
+                .request().get(ProjectAccess.class);
+        if(projectAccess != null)
+            return projectAccess.getAccessLevel();
+        else
+            return null;
     }
 
     /* --- PUT REQUESTS --- */

@@ -8,6 +8,7 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import net.sharemycode.model.Project;
 import net.sharemycode.model.ProjectResource;
+import net.sharemycode.model.ProjectResource.ResourceType;
 
 import org.apache.http.client.ClientProtocolException;
 
@@ -16,6 +17,9 @@ import org.apache.http.client.ClientProtocolException;
  */
 public class AppTest
 extends TestCase {
+    
+    private static String validProjectId;  // projectId that works
+    private static Long validResourceId;   // resourceId of a file
     
     /**
      * Create the test case
@@ -42,8 +46,10 @@ extends TestCase {
         //tests.addTest(new AppTest("fileUploadTest"));
         tests.addTest(new AppTest("listProjectsTest"));
         tests.addTest(new AppTest("fetchProjectTest"));
+        tests.addTest(new AppTest("getProjectAccessTest"));
         tests.addTest(new AppTest("listResourcesTest"));
         tests.addTest(new AppTest("fetchResourceTest"));
+        tests.addTest(new AppTest("getResourceAccessTest"));
         tests.addTest(new AppTest("closeClientTest"));
         return tests;
     }
@@ -125,12 +131,15 @@ extends TestCase {
         test.login("testUser", "test");
         List<Project> projects = test.listProjects();
         for (Project p : projects) {
-            System.out.println("Project Name: " + p.getName() +
+            System.out.println("Project ID: " + p.getId() +
+                    ", Project Name: " + p.getName() +
                     ", Owner: " + p.getOwner() + 
                     ", Version: " + p.getVersion() +
                     ", URL:" + p.getUrl() + 
                     ", Description: " + p.getDescription());
         }
+        if(projects.get(1) != null)
+            validProjectId = projects.get(1).getId();  // the second project probably has a resource
         assertTrue(projects.size() > 0);	// at least one project is returned
     }
 
@@ -138,7 +147,7 @@ extends TestCase {
     public void fetchProjectTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
-        Project project = test.fetchProject("2c90518148a504630148a53e3e7d0000");
+        Project project = test.fetchProject(validProjectId);
         assertNotNull(project);
         System.out.println(project.getName());
     }
@@ -147,9 +156,16 @@ extends TestCase {
     public void listResourcesTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
-        List<ProjectResource> resources = test.listResources("2c90518148a504630148a55f4f050001");
+        List<ProjectResource> resources = test.listResources(validProjectId);
         if(resources == null)
             fail("Resources could not be retrieved. No resources exist.");
+        for (ProjectResource r : resources) {
+            System.out.println("Resource ID: " + r.getId() +
+                    ", Resource Name: " + r.getName() + 
+                    ", Type: " + r.getResourceType());
+            if(r.getResourceType() == ResourceType.FILE)
+                validResourceId = r.getId();
+        }
         assertTrue(resources.size() > 0);
         System.out.println(resources.get(0).getName());
     }
@@ -158,7 +174,7 @@ extends TestCase {
     public void fetchResourceTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
-        assertTrue(test.fetchResource(7L) == 200);
+        assertTrue(test.fetchResource(validResourceId) == 200);
     }
 
     /* CLOSE CLIENT TEST */
@@ -177,4 +193,17 @@ extends TestCase {
         }
     }
 
+    /* GET PROJECTACCESS TEST */
+    public void getProjectAccessTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        assertNotNull(test.getProjectAccessLevel(validProjectId));
+    }
+    
+    /* GET RESOURCEACCESS TEST */
+    public void getResourceAccessTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        assertNotNull(test.getResourceAccessLevel(validResourceId));
+    }
 }
