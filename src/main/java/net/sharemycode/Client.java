@@ -142,6 +142,46 @@ public class Client {
         return message;
     }
 
+    // TODO Test this function
+    public String createProjectAuthorisation(Project p, String userId, String accessLevel) {
+        // if accessLevel incorrectly entered, return error
+        if(!(accessLevel.toUpperCase() == "OWNER" || accessLevel.toUpperCase() == "READ" ||
+                accessLevel.toUpperCase() == "READ_WRITE" || accessLevel.toUpperCase() == "RESTRICTED"))
+            return "Error: Invalid AccessLevel entered";
+        // submit POST request
+        String resource = "/projects/{projectId}/access/{userId}";
+        Response response = RESTClient.path(resource)
+                .resolveTemplate("projectId", p.getId()).resolveTemplate("userId", userId)
+                .request(MediaType.TEXT_PLAIN).post(Entity.text(accessLevel.toUpperCase()));
+        int status = response.getStatus();
+        String message = response.readEntity(String.class);
+        response.close();
+        if(status == 200)
+            return "Authorisation created successfully";
+        else
+            return "Error: " + status +  " - " + message;
+    }
+
+    // TODO Test this function
+    public String createResourceAuthorisation(Long resourceId, String userId, String accessLevel) {
+        // if accessLevel incorrectly entered, return error
+        if(accessLevel.toUpperCase() != "OWNER" || accessLevel.toUpperCase() != "READ" ||
+                accessLevel.toUpperCase() != "READ_WRITE")
+            return "Error: Invalid AccessLevel entered";
+        // submit POST request
+        String resource = "/resources/{resourceId}/access/{userId}";
+        Response response = RESTClient.path(resource)
+                .resolveTemplate("resourceId", resourceId).resolveTemplate("userId", userId)
+                .request(MediaType.TEXT_PLAIN).post(Entity.text(accessLevel));
+        int status = response.getStatus();
+        String message = response.readEntity(String.class);
+        response.close();
+        if(status == 200)
+            return "Authorisation created successfully";
+        else
+            return "Error: " + status +  " - " + message;
+    }
+    
     public JSONObject fileUpload(String path) throws IOException {
 
         File file = new File(path);
@@ -200,12 +240,28 @@ public class Client {
 
     /* --- GET REQUESTS --- */
 
-    /* GET AUTH STATUS */
+    /* GET AUTH STATUS */   // Tested: 25/09/2014
     public String getAuthStatus() {
         Response response = RESTClient.path("/auth/status").request().get();
         String message = response.readEntity(String.class);
         return message;
     }
+    
+    /* LOOKUP USER BY USERNAME */
+    public String lookupUserByUsername(String username) {
+        String resource = "/users/{username}";
+        Response response = RESTClient.path(resource).resolveTemplate("username", username).request(MediaType.APPLICATION_JSON).get();
+        try {
+            JSONObject user = new JSONObject(response.readEntity(String.class));
+            return user.getString("id");
+        } catch(JSONException e) {
+            System.err.println("Problem getting data");
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    // TODO Lookup User by Email
     
     /* LIST PROJECTS - GET JSON */  // Tested 23/09/2014
     public List<Project> listProjects() {
@@ -283,6 +339,7 @@ public class Client {
     }
     
     /* GET RESOURCE ACCESS LEVEL */
+    // TODO Test this function
     public ResourceAccess.AccessLevel getResourceAccessLevel(Long resourceId) {
         String resource = "/resources/{resourceId}/access";
         ResourceAccess resourceAccess = RESTClient.path(resource).resolveTemplate("resourceId", resourceId)
@@ -294,6 +351,7 @@ public class Client {
     }
     
     /* GET PROJECT ACCESS LEVEL */
+    // TODO Test this function
     public ProjectAccess.AccessLevel getProjectAccessLevel(String projectId) {
         String resource = "/projects/{projectId}/access";
         ProjectAccess projectAccess = RESTClient.path(resource).resolveTemplate("projectId", projectId)
@@ -308,10 +366,12 @@ public class Client {
     // TODO UpdateProject
     // TODO UpdateResource
     // TODO UpdateUser
+    // TODO updateProjectAuthorisation
+    // TODO updateResourceAuthorisation
 
     /* --- DELETE REQUESTS --- */
 
-    //TODO delete project       - DELETE
+    // TODO delete project       - DELETE
     /* DELETE PROJECT - DELETE */
     public int deleteProject(String projectId) {
         String resource = "/projects/{projectId}";
@@ -321,7 +381,7 @@ public class Client {
         return status;
     }
 
-    //TODO delete resource      - DELETE
+    // TODO delete resource      - DELETE
     /* DELETE RESOURCE - DELETE */
     public int deleteResource(Long resourceId) {
         String resource = "/resources/{resourceId}";
@@ -331,8 +391,42 @@ public class Client {
         return status;
     }
 
+    // TODO Test this function
+    public String removeProjectAuthorisation(Project p, String userId) {
+        // submit DELETE request
+        String resource = "/projects/{projectId}/access/{userId}";
+        Response response = RESTClient.path(resource)
+                .resolveTemplate("projectId", p.getId()).resolveTemplate("userId", userId)
+                .request(MediaType.TEXT_PLAIN).delete();
+        int status = response.getStatus();
+        String message = response.readEntity(String.class);
+        response.close();
+        if(status == 200)
+            return "Authorisation removed";
+        else
+            return "Error: " + status +  " - " + message;
+    }
+    
+    
+    // TODO Test this function
+    public String removeResourceAuthorisation(Long resourceId, String userId) {
+        // submit DELETE request
+        String resource = "/resources/{resourceId}/access/{userId}";
+        Response response = RESTClient.path(resource)
+                .resolveTemplate("resourceId", resourceId).resolveTemplate("userId", userId)
+                .request(MediaType.TEXT_PLAIN).delete();
+        int status = response.getStatus();
+        String message = response.readEntity(String.class);
+        response.close();
+        if(status == 200)
+            return "Authorisation removed";
+        else
+            return "Error: " + status +  " - " + message;
+    }    
+    
+    /* USER AUTHENTICATION */
 
-    //TODO user login   - POST
+    /* USER LOGIN */    // Tested: 25/06/2014
     public String login(String username, String password) {
         // submit login request
         if(username == null || password == null)
@@ -344,14 +438,11 @@ public class Client {
         } else
             return "Login failed";
     }
+
+    /* USER LOGOUT */
     //TODO user logout  - GET
-    //TODO update authorisation - POST
-    //TODO remove authorisation - GET?
-    //TODO publish resource     - POST
-    //TODO subscribe to resource updates - POST/WS?
-    //TODO publish resource update  - POST/WS?
     
-    /* HTTP BASIC AUTHENTICATION */
+    /* HTTP BASIC AUTHENTICATION */ // Tested: 25/09/2014
     public String httpBasicAuth(String username, String password) {
         try {
             String encoding = Base64.encodeBase64String(new String(username.toLowerCase() + ":" + password.toLowerCase()).getBytes("UTF-8"));
@@ -365,4 +456,8 @@ public class Client {
         }
         return null;
     }
+
+    //TODO publish resource     - POST
+    //TODO subscribe to resource updates - POST/WS?
+    //TODO publish resource update  - POST/WS?
 }

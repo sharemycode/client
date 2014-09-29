@@ -47,9 +47,17 @@ extends TestCase {
         tests.addTest(new AppTest("listProjectsTest"));
         tests.addTest(new AppTest("fetchProjectTest"));
         tests.addTest(new AppTest("getProjectAccessTest"));
+        tests.addTest(new AppTest("createProjectAuthorisationTest"));
+        //tests.addTest(new AppTest("getProjectAuthorisationTest"));
+        //tests.addTest(new AppTest("updateProjectAuthorisationTest"));
+        //tests.addTest(new AppTest("removeProjectAuthorisationTest"));
         tests.addTest(new AppTest("listResourcesTest"));
         tests.addTest(new AppTest("fetchResourceTest"));
         tests.addTest(new AppTest("getResourceAccessTest"));
+        tests.addTest(new AppTest("createResourceAuthorisationTest"));
+        //tests.addTest(new AppTest("getResourceAuthorisationTest"));
+        //tests.addTest(new AppTest("updateResourceAuthorisationTest"));
+        //tests.addTest(new AppTest("removeResourceAuthorisationTest"));;
         tests.addTest(new AppTest("closeClientTest"));
         return tests;
     }
@@ -198,6 +206,29 @@ extends TestCase {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
         assertNotNull(test.getProjectAccessLevel(validProjectId));
+    }
+    
+    /* CREATE PROJECT AUTHORISATION TEST */
+    public void createProjectAuthorisationTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.createUser("User2", "user2@test.com", "user2@test.com", "user2", "user2", "user", "two");
+        test.login("testUser", "test");
+        String userId = test.lookupUserByUsername("User2");
+        Project p = test.fetchProject(validProjectId);
+        String result = test.createProjectAuthorisation(p, userId, "READ_WRITE");
+        if(result == null) fail("Expected not null");
+        assertTrue(result.equals("Authorisation created successfully"));
+    }
+    
+    /* CREATE RESOUCE AUTHORISATION TEST */
+    public void createResourceAuthorisationTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.createUser("User2", "user2@test.com", "user2@test.com", "user2", "user2", "user", "two");
+        test.login("testUser", "test");
+        String userId = test.lookupUserByUsername("User2");
+        String result = test.createResourceAuthorisation(validResourceId, userId, "READ_WRITE");
+        if(result == null) fail("Expected not null");
+        assertTrue(result.equals("Authorisation created successfully"));
     }
     
     /* GET RESOURCEACCESS TEST */
