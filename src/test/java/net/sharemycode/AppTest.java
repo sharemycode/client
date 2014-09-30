@@ -7,6 +7,7 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import net.sharemycode.model.Project;
+import net.sharemycode.model.ProjectAccess;
 import net.sharemycode.model.ProjectResource;
 import net.sharemycode.model.ProjectResource.ResourceType;
 
@@ -49,8 +50,8 @@ extends TestCase {
         tests.addTest(new AppTest("getProjectAccessTest"));
         tests.addTest(new AppTest("createProjectAuthorisationTest"));
         //tests.addTest(new AppTest("getProjectAuthorisationTest"));
-        //tests.addTest(new AppTest("updateProjectAuthorisationTest"));
-        //tests.addTest(new AppTest("removeProjectAuthorisationTest"));
+        tests.addTest(new AppTest("updateProjectAuthorisationTest"));
+        tests.addTest(new AppTest("removeProjectAuthorisationTest"));
         tests.addTest(new AppTest("listResourcesTest"));
         tests.addTest(new AppTest("fetchResourceTest"));
         tests.addTest(new AppTest("getResourceAccessTest"));
@@ -214,18 +215,36 @@ extends TestCase {
         test.createUser("User2", "user2@test.com", "user2@test.com", "user2", "user2", "user", "two");
         test.login("testUser", "test");
         String userId = test.lookupUserByUsername("User2");
-        Project p = test.fetchProject(validProjectId);
-        String result = test.createProjectAuthorisation(p, userId, "READ_WRITE");
-        if(result == null) fail("Expected not null");
-        assertTrue(result.equals("Authorisation created successfully"));
+        Project p = test.listProjects().get(0);
+        String result = test.createProjectAuthorisation(p, userId, ProjectAccess.AccessLevel.READ_WRITE);
+        assertEquals("Expected Authorisation successful ", "Authorisation successful", result);
+    }
+    
+    /* UPDATE PROJECT AUTHORISATION TEST */
+    public void updateProjectAuthorisationTest() {
+    	Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+    	test.login("testUser", "test");
+    	String userId = test.lookupUserByUsername("User2");
+    	Project p = test.listProjects().get(0);
+    	String result = test.updateProjectAuthorisation(p, userId, ProjectAccess.AccessLevel.READ);
+    	assertEquals("Expected Update successful ", "Update successful", result);	
+    }
+    
+    public void removeProjectAuthorisationTest() {
+    	Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+    	test.login("testUser", "test");
+    	String userId = test.lookupUserByUsername("User2");
+    	Project p = test.listProjects().get(0);
+    	String result = test.removeProjectAuthorisation(p, userId);
+    	assertEquals("Expected Authorisation removed", "Authorisation removed", result);
     }
     
     /* CREATE RESOUCE AUTHORISATION TEST */
     public void createResourceAuthorisationTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
-        test.createUser("User2", "user2@test.com", "user2@test.com", "user2", "user2", "user", "two");
+        test.createUser("User3", "user3@test.com", "user3@test.com", "user3", "user3", "user", "three");
         test.login("testUser", "test");
-        String userId = test.lookupUserByUsername("User2");
+        String userId = test.lookupUserByUsername("User3");
         String result = test.createResourceAuthorisation(validResourceId, userId, "READ_WRITE");
         if(result == null) fail("Expected not null");
         assertTrue(result.equals("Authorisation created successfully"));

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
 
@@ -138,27 +139,36 @@ public class Client {
         String data = project.toString();
         Response response = RESTClient.path("/projects").request(MediaType.TEXT_PLAIN).post(Entity.json(data));
         String message = response.readEntity(String.class);
+        URI location = response.getLocation();
+        if(location != null)
+        	System.out.println(location);
         response.close();
         return message;
     }
 
     // TODO Test this function
-    public String createProjectAuthorisation(Project p, String userId, String accessLevel) {
-        // if accessLevel incorrectly entered, return error
-        if(!(accessLevel.toUpperCase() == "OWNER" || accessLevel.toUpperCase() == "READ" ||
-                accessLevel.toUpperCase() == "READ_WRITE" || accessLevel.toUpperCase() == "RESTRICTED"))
-            return "Error: Invalid AccessLevel entered";
+    public String createProjectAuthorisation(Project p, String userId, ProjectAccess.AccessLevel accessLevel) {
+    	// create ProjectAccess object
+    	if(p == null || userId == null || accessLevel == null)
+    		return "Error: invalid parameters";
+    	ProjectAccess access = new ProjectAccess();
+    	access.setProject(p);
+    	access.setUserId(userId);
+    	access.setOpen(false);
+    	access.setAccessLevel(accessLevel);
         // submit POST request
-        String resource = "/projects/{projectId}/access/{userId}";
+        String resource = "/projects/{projectId}/access/";
         Response response = RESTClient.path(resource)
-                .resolveTemplate("projectId", p.getId()).resolveTemplate("userId", userId)
-                .request(MediaType.TEXT_PLAIN).post(Entity.text(accessLevel.toUpperCase()));
+                .resolveTemplate("projectId", p.getId())
+                .request(MediaType.TEXT_PLAIN).post(Entity.entity(access, MediaType.APPLICATION_JSON));
         int status = response.getStatus();
         String message = response.readEntity(String.class);
+        URI location = response.getLocation();
         response.close();
-        if(status == 200)
-            return "Authorisation created successfully";
-        else
+        if(status == 201) {	// resource created
+        	System.out.println(location.toString());
+            return "Authorisation successful";
+        } else
             return "Error: " + status +  " - " + message;
     }
 
@@ -367,6 +377,29 @@ public class Client {
     // TODO UpdateResource
     // TODO UpdateUser
     // TODO updateProjectAuthorisation
+    public String updateProjectAuthorisation(Project p, String userId, ProjectAccess.AccessLevel accessLevel) {
+    	// create ProjectAccess object
+    	if(p == null || userId == null || accessLevel == null)
+    		return "Error: invalid parameters";
+    	ProjectAccess access = new ProjectAccess();
+    	access.setProject(p);
+    	access.setUserId(userId);
+    	access.setOpen(false);
+    	access.setAccessLevel(accessLevel);
+        // submit POST request
+        String resource = "/projects/{projectId}/access/{userId}";
+        Response response = RESTClient.path(resource)
+                .resolveTemplate("projectId", p.getId())
+                .resolveTemplate("userId", userId)
+                .request(MediaType.TEXT_PLAIN).put(Entity.entity(access, MediaType.APPLICATION_JSON));
+        int status = response.getStatus();
+        String message = response.readEntity(String.class);
+        response.close();
+        if(status == 200) {
+            return "Update successful";
+        } else
+            return "Error: " + status +  " - " + message;
+    }
     // TODO updateResourceAuthorisation
 
     /* --- DELETE REQUESTS --- */

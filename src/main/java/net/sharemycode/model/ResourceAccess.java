@@ -11,7 +11,7 @@ import java.io.Serializable;
 public class ResourceAccess implements Serializable {
    private static final long serialVersionUID = -790604070028430439L;
 
-   public enum AccessLevel {OWNER, READ, READ_WRITE, RESTRICTED};
+   public enum AccessLevel {OWNER, READ, READ_WRITE};
 
    private Long id;
 
