@@ -9,6 +9,7 @@ import junit.framework.TestSuite;
 import net.sharemycode.model.Project;
 import net.sharemycode.model.ProjectAccess;
 import net.sharemycode.model.ProjectResource;
+import net.sharemycode.model.ResourceAccess;
 import net.sharemycode.model.ProjectResource.ResourceType;
 
 import org.apache.http.client.ClientProtocolException;
@@ -48,17 +49,18 @@ extends TestCase {
         tests.addTest(new AppTest("listProjectsTest"));
         tests.addTest(new AppTest("fetchProjectTest"));
         tests.addTest(new AppTest("getProjectAccessTest"));
+        tests.addTest(new AppTest("getResourceAccessTest"));
         tests.addTest(new AppTest("createProjectAuthorisationTest"));
-        //tests.addTest(new AppTest("getProjectAuthorisationTest"));
+        tests.addTest(new AppTest("getProjectAuthorisationTest"));
         tests.addTest(new AppTest("updateProjectAuthorisationTest"));
         tests.addTest(new AppTest("removeProjectAuthorisationTest"));
         tests.addTest(new AppTest("listResourcesTest"));
         tests.addTest(new AppTest("fetchResourceTest"));
         tests.addTest(new AppTest("getResourceAccessTest"));
         tests.addTest(new AppTest("createResourceAuthorisationTest"));
-        //tests.addTest(new AppTest("getResourceAuthorisationTest"));
-        //tests.addTest(new AppTest("updateResourceAuthorisationTest"));
-        //tests.addTest(new AppTest("removeResourceAuthorisationTest"));;
+        tests.addTest(new AppTest("getResourceAuthorisationTest"));
+        tests.addTest(new AppTest("updateResourceAuthorisationTest"));
+        tests.addTest(new AppTest("removeResourceAuthorisationTest"));;
         tests.addTest(new AppTest("closeClientTest"));
         return tests;
     }
@@ -114,6 +116,7 @@ extends TestCase {
     
     /* CREATE PROJECT TEST */
     public void createProjectTest() {
+        // create a project without any attachments
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
         String url = test.createProject("testProject", "0.0.Test", "This is a test Project", null);
@@ -147,8 +150,6 @@ extends TestCase {
                     ", URL:" + p.getUrl() + 
                     ", Description: " + p.getDescription());
         }
-        if(projects.get(1) != null)
-            validProjectId = projects.get(1).getId();  // the second project probably has a resource
         assertTrue(projects.size() > 0);	// at least one project is returned
     }
 
@@ -156,34 +157,48 @@ extends TestCase {
     public void fetchProjectTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
-        Project project = test.fetchProject(validProjectId);
+        Project validProject = test.listProjects().get(0);
+        Project project = test.fetchProject(validProject.getId());
         assertNotNull(project);
-        System.out.println(project.getName());
     }
 
     /* LIST RESOURCES TEST */    // requires a valid projectId
     public void listResourcesTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
-        List<ProjectResource> resources = test.listResources(validProjectId);
-        if(resources == null)
-            fail("Resources could not be retrieved. No resources exist.");
-        for (ProjectResource r : resources) {
-            System.out.println("Resource ID: " + r.getId() +
-                    ", Resource Name: " + r.getName() + 
-                    ", Type: " + r.getResourceType());
-            if(r.getResourceType() == ResourceType.FILE)
-                validResourceId = r.getId();
+        ProjectResource validResource = null;
+        List<Project> projects = test.listProjects();
+        List<ProjectResource> resources = null;
+        for(Project p : projects) {
+            resources = test.listResources(p);
+            if(resources == null)
+                fail("Resources could not be retrieved. No resources exist.");
+            for(ProjectResource r : resources) {
+                System.out.println("Resource ID: " + r.getId() +
+                        ", Resource Name: " + r.getName() + 
+                        ", Type: " + r.getResourceType());
+            }
         }
         assertTrue(resources.size() > 0);
-        System.out.println(resources.get(0).getName());
     }
 
     /* FETCH RESOURCE TEST */    // requires a valid file resourceId
     public void fetchResourceTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
-        assertTrue(test.fetchResource(validResourceId) == 200);
+        ProjectResource validResource = null;
+        List<Project> projects = test.listProjects();
+        for(Project p : projects) {
+            List<ProjectResource> resources = test.listResources(p);
+            for(ProjectResource r : resources) {
+                if(r.getResourceType() == ResourceType.FILE) {
+                    validResource = r;
+                    break;
+                }
+            }
+            
+        }
+        assertTrue(test.fetchResource(validResource) == 200);
     }
 
     /* CLOSE CLIENT TEST */
@@ -206,10 +221,29 @@ extends TestCase {
     public void getProjectAccessTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
-        assertNotNull(test.getProjectAccessLevel(validProjectId));
+        Project p = test.listProjects().get(0);
+        assertNotNull(test.getProjectAccessLevel(p));
     }
     
-    /* CREATE PROJECT AUTHORISATION TEST */
+    /* GET RESOURCEACCESS TEST */
+    public void getResourceAccessTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        ProjectResource validResource = null;
+        List<Project> projects = test.listProjects();
+        for(Project p : projects) {
+            List<ProjectResource> resources = test.listResources(p);
+            for(ProjectResource r : resources) {
+                if(r.getResourceType() == ResourceType.FILE) {
+                    validResource = r;
+                    break;
+                }
+            }
+        }
+        assertNotNull(test.getResourceAccessLevel(validResource));
+    }
+    
+    /* CREATE PROJECT AUTHORISATION TEST */ // Tested 30/09/2014
     public void createProjectAuthorisationTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.createUser("User2", "user2@test.com", "user2@test.com", "user2", "user2", "user", "two");
@@ -220,18 +254,32 @@ extends TestCase {
         assertEquals("Expected Authorisation successful ", "Authorisation successful", result);
     }
     
-    /* UPDATE PROJECT AUTHORISATION TEST */
+    /* GET PROJECT AUTHORISATION TEST */
+    public void getProjectAuthorisationTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.createUser("User2", "user2@test.com", "user2@test.com", "user2", "user2", "user", "two");
+        test.login("testUser", "test");
+        String userId = test.lookupUserByUsername("User2");
+        Project p = test.listProjects().get(0);
+        assertNotNull(test.getProjectAuthorisation(p, userId));
+    }
+    
+    /* UPDATE PROJECT AUTHORISATION TEST */ 
     public void updateProjectAuthorisationTest() {
     	Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+    	test.createUser("User3", "user3@test.com", "user3@test.com", "user3", "user3", "user", "three");
     	test.login("testUser", "test");
-    	String userId = test.lookupUserByUsername("User2");
+    	String userId = test.lookupUserByUsername("User3");
     	Project p = test.listProjects().get(0);
+    	test.createProjectAuthorisation(p, userId, ProjectAccess.AccessLevel.READ_WRITE);
     	String result = test.updateProjectAuthorisation(p, userId, ProjectAccess.AccessLevel.READ);
     	assertEquals("Expected Update successful ", "Update successful", result);	
     }
     
+    /* REMOVE PROJECT AUTHORISATION TEST */
     public void removeProjectAuthorisationTest() {
     	Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.createUser("User2", "user2@test.com", "user2@test.com", "user2", "user2", "user", "two");
     	test.login("testUser", "test");
     	String userId = test.lookupUserByUsername("User2");
     	Project p = test.listProjects().get(0);
@@ -245,15 +293,82 @@ extends TestCase {
         test.createUser("User3", "user3@test.com", "user3@test.com", "user3", "user3", "user", "three");
         test.login("testUser", "test");
         String userId = test.lookupUserByUsername("User3");
-        String result = test.createResourceAuthorisation(validResourceId, userId, "READ_WRITE");
-        if(result == null) fail("Expected not null");
-        assertTrue(result.equals("Authorisation created successfully"));
+        ProjectResource validResource = null;
+        List<Project> projects = test.listProjects();
+        for(Project p : projects) {
+            List<ProjectResource> resources = test.listResources(p);
+            for(ProjectResource r : resources) {
+                if(r.getResourceType() == ResourceType.FILE) {
+                    validResource = r;
+                    break;
+                }
+            }
+            
+        }
+        String result = test.createResourceAuthorisation(validResource, userId, ResourceAccess.AccessLevel.READ_WRITE);
+        assertEquals("Expected Authorisation successful ", "Authorisation successful", result);
     }
     
-    /* GET RESOURCEACCESS TEST */
-    public void getResourceAccessTest() {
+    /* GET RESOURCE AUTHORISATION TEST */
+    public void getResourceAuthorisationTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.createUser("User3", "user3@test.com", "user3@test.com", "user3", "user3", "user", "three");
+        test.login("testUser", "test");
+        String userId = test.lookupUserByUsername("User3");
+        ProjectResource validResource = null;
+        List<Project> projects = test.listProjects();
+        for(Project p : projects) {
+            List<ProjectResource> resources = test.listResources(p);
+            for(ProjectResource r : resources) {
+                if(r.getResourceType() == ResourceType.FILE) {
+                    validResource = r;
+                    break;
+                }
+            }
+        }
+        assertNotNull(test.getResourceAuthorisation(validResource, userId));
+    }
+    
+    /* UPDATE RESOURCE AUTHORISATION TEST */ 
+    public void updateResourceAuthorisationTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.createUser("User3", "user3@test.com", "user3@test.com", "user3", "user3", "user", "three");
+        test.login("testUser", "test");
+        String userId = test.lookupUserByUsername("User3");
+        ProjectResource validResource = null;
+        List<Project> projects = test.listProjects();
+        for(Project p : projects) {
+            List<ProjectResource> resources = test.listResources(p);
+            for(ProjectResource r : resources) {
+                if(r.getResourceType() == ResourceType.FILE) {
+                    validResource = r;
+                    break;
+                }
+            }
+        }
+        test.createResourceAuthorisation(validResource, userId, ResourceAccess.AccessLevel.READ_WRITE);
+        String result = test.updateResourceAuthorisation(validResource, userId, ResourceAccess.AccessLevel.READ);
+        assertEquals("Expected Update successful ", "Update successful", result);   
+    }
+    
+    /* REMOVE PROJECT AUTHORISATION TEST */
+    public void removeResourceAuthorisationTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
-        assertNotNull(test.getResourceAccessLevel(validResourceId));
+        String userId = test.lookupUserByUsername("User3");
+        ProjectResource validResource = null;
+        List<Project> projects = test.listProjects();
+        for(Project p : projects) {
+            List<ProjectResource> resources = test.listResources(p);
+            for(ProjectResource r : resources) {
+                if(r.getResourceType() == ResourceType.FILE) {
+                    validResource = r;
+                    break;
+                }
+            }
+            
+        }
+        String result = test.removeResourceAuthorisation(validResource, userId);
+        assertEquals("Expected Authorisation removed", "Authorisation removed", result);
     }
 }

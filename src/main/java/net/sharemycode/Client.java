@@ -173,22 +173,27 @@ public class Client {
     }
 
     // TODO Test this function
-    public String createResourceAuthorisation(Long resourceId, String userId, String accessLevel) {
-        // if accessLevel incorrectly entered, return error
-        if(accessLevel.toUpperCase() != "OWNER" || accessLevel.toUpperCase() != "READ" ||
-                accessLevel.toUpperCase() != "READ_WRITE")
-            return "Error: Invalid AccessLevel entered";
+    public String createResourceAuthorisation(ProjectResource r, String userId, ResourceAccess.AccessLevel accessLevel) {
+        // create ResourceAccess object
+        if(r == null || userId == null || accessLevel == null)
+            return "Error: invalid parameters";
+        ResourceAccess access = new ResourceAccess();
+        access.setResource(r);
+        access.setUserId(userId);
+        access.setAccessLevel(accessLevel);
         // submit POST request
-        String resource = "/resources/{resourceId}/access/{userId}";
+        String resource = "/resources/{resourceId}/access/";
         Response response = RESTClient.path(resource)
-                .resolveTemplate("resourceId", resourceId).resolveTemplate("userId", userId)
-                .request(MediaType.TEXT_PLAIN).post(Entity.text(accessLevel));
+                .resolveTemplate("resourceId", r.getId())
+                .request(MediaType.TEXT_PLAIN).post(Entity.entity(access, MediaType.APPLICATION_JSON));
         int status = response.getStatus();
         String message = response.readEntity(String.class);
+        URI location = response.getLocation();
         response.close();
-        if(status == 200)
-            return "Authorisation created successfully";
-        else
+        if(status == 201) {
+            System.out.println(location.toString());
+            return "Authorisation successful";
+        } else
             return "Error: " + status +  " - " + message;
     }
     
@@ -296,29 +301,29 @@ public class Client {
     }
 
     /* LIST RESOURCES - GET JSON*/  // Tested 23/09/2014
-    public List<ProjectResource> listResources(String projectId) {
+    public List<ProjectResource> listResources(Project p) {
         // Return a list of resources for a project as JSON
         String resource = "/projects/{projectId}/resources";
         GenericType<List<ProjectResource>> resourceType = new GenericType<List<ProjectResource>>() {};
         try {
             List<ProjectResource> resources =  RESTClient.path(resource)
-                    .resolveTemplate("projectId", projectId).request().get(resourceType);
+                    .resolveTemplate("projectId", p.getId()).request().get(resourceType);
             return resources;
         } catch (NotFoundException e) {
-            System.err.println("Resource: rest/projects/" + projectId + "/resources\n" + e);
+            System.err.println("Resource: rest/projects/" + p.getId() + "/resources\n" + e);
             return null;
         }
     }
 
     /* FETCH RESOURCE */ // Tested 23/09/2014
-    public int fetchResource(Long resourceId) {
+    public int fetchResource(ProjectResource r) {
         int status = 0;
         OutputStream outputStream = null;
         InputStream inputStream = null;
         String resource = "/resources/{resourceId}";
         try {
             Response response = RESTClient.path(resource)
-                    .resolveTemplate("resourceId", resourceId)
+                    .resolveTemplate("resourceId", r.getId())
                     .request(MediaType.APPLICATION_OCTET_STREAM).get();
             status = response.getStatus();
             if(status == 200) {   // success, download resource
@@ -342,32 +347,64 @@ public class Client {
         } catch (IOException e) {
             e.printStackTrace();
         } catch (NotFoundException e) {
-            System.err.println("Resource: rest/resources/" + resourceId + "\n" + e);
+            System.err.println("Resource: rest/resources/" + r.getId() + "\n" + e);
             return 404;
         }
         return status;
     }
     
+
+    
+    /* GET PROJECT ACCESS LEVEL */
+    // TODO Test this function
+    public ProjectAccess.AccessLevel getProjectAccessLevel(Project p) {
+        // get the project access level for the current logged in user
+        String resource = "/projects/{projectId}/access";
+        ProjectAccess projectAccess = RESTClient.path(resource).resolveTemplate("projectId", p.getId())
+                .request().get(ProjectAccess.class);
+        if(projectAccess != null)
+            return projectAccess.getAccessLevel();
+        else
+            return null;
+    }
+    
     /* GET RESOURCE ACCESS LEVEL */
     // TODO Test this function
-    public ResourceAccess.AccessLevel getResourceAccessLevel(Long resourceId) {
+    public ResourceAccess.AccessLevel getResourceAccessLevel(ProjectResource r) {
+        // get the resource access level for the current logged in user
         String resource = "/resources/{resourceId}/access";
-        ResourceAccess resourceAccess = RESTClient.path(resource).resolveTemplate("resourceId", resourceId)
+        ResourceAccess resourceAccess = RESTClient.path(resource).resolveTemplate("resourceId", r.getId())
                 .request().get(ResourceAccess.class);
         if(resourceAccess != null)
             return resourceAccess.getAccessLevel();
         else
             return null;
     }
-    
-    /* GET PROJECT ACCESS LEVEL */
-    // TODO Test this function
-    public ProjectAccess.AccessLevel getProjectAccessLevel(String projectId) {
-        String resource = "/projects/{projectId}/access";
-        ProjectAccess projectAccess = RESTClient.path(resource).resolveTemplate("projectId", projectId)
+    /* GET PROJECT AUTHORISATION */
+    public ProjectAccess.AccessLevel getProjectAuthorisation(Project p, String userId) {
+        // get the project access level for a specific user
+        String resource = "/projects/{projectId}/access/{userId}";
+        ProjectAccess projectAccess = RESTClient.path(resource)
+                .resolveTemplate("projectId", p.getId())
+                .resolveTemplate("userId", userId)
                 .request().get(ProjectAccess.class);
         if(projectAccess != null)
             return projectAccess.getAccessLevel();
+        else
+            return null;
+    }
+    
+    /* GET RESOURCE AUTHORISATION */
+    // TODO Test this function
+    public ResourceAccess.AccessLevel getResourceAuthorisation(ProjectResource r, String userId) {
+        // get the resource access level for a specific user
+        String resource = "/resources/{resourceId}/access/{userId}";
+        ResourceAccess resourceAccess = RESTClient.path(resource)
+                .resolveTemplate("resourceId", r.getId())
+                .resolveTemplate("userId", userId)
+                .request().get(ResourceAccess.class);
+        if(resourceAccess != null)
+            return resourceAccess.getAccessLevel();
         else
             return null;
     }
@@ -401,7 +438,29 @@ public class Client {
             return "Error: " + status +  " - " + message;
     }
     // TODO updateResourceAuthorisation
-
+    public String updateResourceAuthorisation(ProjectResource r, String userId, ResourceAccess.AccessLevel accessLevel) {
+        // create ResourceAccess object
+        if(r == null || userId == null || accessLevel == null)
+            return "Error: invalid parameters";
+        ResourceAccess access = new ResourceAccess();
+        access.setResource(r);
+        access.setUserId(userId);
+        access.setAccessLevel(accessLevel);
+        // submit POST request
+        String resource = "/resources/{resourceId}/access/{userId}";
+        Response response = RESTClient.path(resource)
+                .resolveTemplate("resourceId", r.getId())
+                .resolveTemplate("userId", userId)
+                .request(MediaType.TEXT_PLAIN).put(Entity.entity(access, MediaType.APPLICATION_JSON));
+        int status = response.getStatus();
+        String message = response.readEntity(String.class);
+        response.close();
+        if(status == 200) {
+            return "Update successful";
+        } else
+            return "Error: " + status +  " - " + message;
+    }
+    
     /* --- DELETE REQUESTS --- */
 
     // TODO delete project       - DELETE
@@ -442,11 +501,11 @@ public class Client {
     
     
     // TODO Test this function
-    public String removeResourceAuthorisation(Long resourceId, String userId) {
+    public String removeResourceAuthorisation(ProjectResource r, String userId) {
         // submit DELETE request
         String resource = "/resources/{resourceId}/access/{userId}";
         Response response = RESTClient.path(resource)
-                .resolveTemplate("resourceId", resourceId).resolveTemplate("userId", userId)
+                .resolveTemplate("resourceId", r.getId()).resolveTemplate("userId", userId)
                 .request(MediaType.TEXT_PLAIN).delete();
         int status = response.getStatus();
         String message = response.readEntity(String.class);
