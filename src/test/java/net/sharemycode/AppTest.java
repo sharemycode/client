@@ -64,7 +64,7 @@ extends TestCase {
         tests.addTest(new AppTest("lookupUserByEmailTest"));
         tests.addTest(new AppTest("getUserProfileTest"));
         tests.addTest(new AppTest("updateUserProfileTest"));
-        //tests.addTest(new AppTest("updateUserAccountTest"));
+        tests.addTest(new AppTest("updateUserAccountTest"));
         tests.addTest(new AppTest("closeClientTest"));
         return tests;
     }
@@ -156,6 +156,22 @@ extends TestCase {
         }
         assertTrue(projects.size() > 0);	// at least one project is returned
     }
+    
+    /* LIST SHARED PROJECTS TEST */
+    public void listSharedProjectsTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("User2", "user2");
+        List<Project> projects = test.listSharedProjects();
+        for (Project p : projects) {
+            System.out.println("Project ID: " + p.getId() +
+                    ", Project Name: " + p.getName() +
+                    ", Owner: " + p.getOwner() + 
+                    ", Version: " + p.getVersion() +
+                    ", URL:" + p.getUrl() + 
+                    ", Description: " + p.getDescription());
+        }
+        assertTrue(projects.size() > 0);    // at least one project is returned
+    }    
 
     /* FETCH PROJECT TEST */    // requires a valid projectId
     public void fetchProjectTest() {
@@ -254,7 +270,7 @@ extends TestCase {
         test.login("testUser", "test");
         String userId = test.lookupUserByUsername("User2");
         Project p = test.listProjects().get(0);
-        String result = test.createProjectAuthorisation(p, userId, ProjectAccess.AccessLevel.OWNER);
+        String result = test.createProjectAuthorisation(p, userId, ProjectAccess.AccessLevel.READ_WRITE);
         assertEquals("Expected Authorisation successful ", "Authorisation successful", result);
     }
     

@@ -314,9 +314,17 @@ public class Client {
     
     /* LIST PROJECTS - GET JSON */  // Tested 23/09/2014
     public List<Project> listProjects() {
-        // return a list of projects (User's projects when Authentication is working)
+        // return a list of user's projects
         GenericType<List<Project>> projectType = new GenericType<List<Project>>() {};
         List<Project> projects =  RESTClient.path("/projects").request().get(projectType);
+        return projects;
+    }
+    
+    /* LIST SHARED PROJECTS */
+    // TODO Test this function
+    public List<Project> listSharedProjects() {
+        GenericType<List<Project>> projectType = new GenericType<List<Project>>() {};
+        List<Project> projects =  RESTClient.path("/projects/shared").request().get(projectType);
         return projects;
     }
 
