@@ -25,6 +25,7 @@ import net.sharemycode.model.Project;	// JavaBean entities
 import net.sharemycode.model.ProjectAccess;
 import net.sharemycode.model.ProjectResource;
 import net.sharemycode.model.ResourceAccess;
+import net.sharemycode.model.UserProfile;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.codec.binary.Base64;
@@ -146,7 +147,7 @@ public class Client {
         return message;
     }
 
-    // TODO Test this function
+    /* CREATE PROJECT AUTHORISATION */  // Tested: 01/10/2014
     public String createProjectAuthorisation(Project p, String userId, ProjectAccess.AccessLevel accessLevel) {
     	// create ProjectAccess object
     	if(p == null || userId == null || accessLevel == null)
@@ -172,7 +173,7 @@ public class Client {
             return "Error: " + status +  " - " + message;
     }
 
-    // TODO Test this function
+    /* CREATE RESOURCE AUTHORISATION */  // Tested: 01/10/2014
     public String createResourceAuthorisation(ProjectResource r, String userId, ResourceAccess.AccessLevel accessLevel) {
         // create ResourceAccess object
         if(r == null || userId == null || accessLevel == null)
@@ -197,6 +198,8 @@ public class Client {
             return "Error: " + status +  " - " + message;
     }
     
+    /* FILE UPLOAD */
+    // TODO Complete this function
     public JSONObject fileUpload(String path) throws IOException {
 
         File file = new File(path);
@@ -252,6 +255,10 @@ public class Client {
             return null;
     }
      */
+    
+    //TODO publish resource     - POST
+    //TODO subscribe to resource updates - POST/WS?
+    //TODO publish resource update  - POST/WS?
 
     /* --- GET REQUESTS --- */
 
@@ -262,7 +269,8 @@ public class Client {
         return message;
     }
     
-    /* LOOKUP USER BY USERNAME */
+    /* LOOKUP USER BY USERNAME */   // Tested 02/10/2014
+    // Currently returns userId for use in authorisation methods. This method may need to be removed
     public String lookupUserByUsername(String username) {
         String resource = "/users/{username}";
         Response response = RESTClient.path(resource).resolveTemplate("username", username).request(MediaType.APPLICATION_JSON).get();
@@ -276,7 +284,33 @@ public class Client {
         return null;
     }
     
-    // TODO Lookup User by Email
+    /* LOOKUP USER BY EMAIL */  // Tested 02/10/2014
+    // Currently returns userId. This may need to return username only.
+    public String lookupUserByEmail(String email) {
+        String resource = "/users/search/";
+        Response response = RESTClient.path(resource)
+                .queryParam("email", email).queryParam("username", "")
+                .request(MediaType.APPLICATION_JSON).get();
+        try {
+            JSONObject user = new JSONObject(response.readEntity(String.class));
+            return user.getString("id");
+        } catch(JSONException e) {
+            System.err.println("Problem getting data");
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    /* GET USER PROFILE */
+    // TODO Write test for this function
+    public UserProfile getUserProfile(String username) {
+        String resource = "/users/{username}/profile";
+        Response response = RESTClient.path(resource)
+                .resolveTemplate("username", username)
+                .request(MediaType.APPLICATION_JSON).get();
+        UserProfile profile = response.readEntity(UserProfile.class);
+        return profile;
+    }
     
     /* LIST PROJECTS - GET JSON */  // Tested 23/09/2014
     public List<Project> listProjects() {
@@ -353,8 +387,6 @@ public class Client {
         return status;
     }
     
-
-    
     /* GET PROJECT ACCESS LEVEL */
     // TODO Test this function
     public ProjectAccess.AccessLevel getProjectAccessLevel(Project p) {
@@ -380,7 +412,8 @@ public class Client {
         else
             return null;
     }
-    /* GET PROJECT AUTHORISATION */
+    
+    /* GET PROJECT AUTHORISATION */     // Tested: 01/10/2014
     public ProjectAccess.AccessLevel getProjectAuthorisation(Project p, String userId) {
         // get the project access level for a specific user
         String resource = "/projects/{projectId}/access/{userId}";
@@ -394,8 +427,7 @@ public class Client {
             return null;
     }
     
-    /* GET RESOURCE AUTHORISATION */
-    // TODO Test this function
+    /* GET RESOURCE AUTHORISATION */    // Tested: 01/10/2014
     public ResourceAccess.AccessLevel getResourceAuthorisation(ProjectResource r, String userId) {
         // get the resource access level for a specific user
         String resource = "/resources/{resourceId}/access/{userId}";
@@ -412,8 +444,64 @@ public class Client {
     /* --- PUT REQUESTS --- */
     // TODO UpdateProject
     // TODO UpdateResource
-    // TODO UpdateUser
-    // TODO updateProjectAuthorisation
+    
+    /* UPDATE USER ACCOUNT */   // Tested 02/10/2014
+    // Currently returns JSON user data. This is probably a security issue.
+    // It should probably only return a success status
+    public JSONObject updateUserAccount(String username, String newUsername,
+            String email, String emailc, String password, String passwordc, 
+            String firstName, String lastName) {
+        // create userUpdate object
+        JSONObject userJSON = new JSONObject();
+        userJSON.put("username", newUsername);
+        if (email != null && emailc != null && email.equals(emailc)) {
+            userJSON.put("email", email);
+            userJSON.put("emailc", emailc);
+        }
+        if (password != null && passwordc != null && password.equals(passwordc)) {
+            userJSON.put("password", password);
+            userJSON.put("passwordc", passwordc);
+        }
+        userJSON.put("firstName", firstName);
+        userJSON.put("lastName", lastName);
+        String data = userJSON.toString();
+        // define REST resource
+        String resource = "/users/{username}";
+        Response response = RESTClient.path(resource)
+                .resolveTemplate("username", username)
+                .request(MediaType.APPLICATION_JSON).put(Entity.json(data));
+        int status = response.getStatus();
+        String body = response.readEntity(String.class);
+        response.close();
+        if(status == 200) {
+            return new JSONObject(body);
+        } else
+            System.err.println("Error occured while updating user. Status: HTTP" + status);
+            return null;
+    }
+    
+    /* UPDATE USER PROFILE */   // Tested: 02/10/2014
+    public UserProfile updateUserProfile(String username, String displayName, String about, String contact, String interests) {
+        UserProfile profile = new UserProfile();
+        profile.setDisplayName(displayName);
+        profile.setAbout(about);
+        profile.setContact(contact);
+        profile.setInterests(interests);
+        // define REST resource
+        String resource = "/users/{username}/profile";
+        Response response = RESTClient.path(resource)
+                .resolveTemplate("username", username)
+                .request(MediaType.APPLICATION_JSON).put(Entity.entity(profile, MediaType.APPLICATION_JSON));
+        int status = response.getStatus();
+        UserProfile result = response.readEntity(UserProfile.class);
+        response.close();
+        if(status == 200) {
+            return result;
+        } else
+            return null;
+    }
+    
+    /* UPDATE PROJECT AUTHORISATION */  // Tested: 01/10/2014
     public String updateProjectAuthorisation(Project p, String userId, ProjectAccess.AccessLevel accessLevel) {
     	// create ProjectAccess object
     	if(p == null || userId == null || accessLevel == null)
@@ -437,7 +525,8 @@ public class Client {
         } else
             return "Error: " + status +  " - " + message;
     }
-    // TODO updateResourceAuthorisation
+    
+    /* UPDATE RESOURCE AUTHORISATION */  // Tested: 01/10/2014
     public String updateResourceAuthorisation(ProjectResource r, String userId, ResourceAccess.AccessLevel accessLevel) {
         // create ResourceAccess object
         if(r == null || userId == null || accessLevel == null)
@@ -483,7 +572,7 @@ public class Client {
         return status;
     }
 
-    // TODO Test this function
+    /* REMOVE PROJECT AUTHORISATION */  // Tested: 01/10/2014
     public String removeProjectAuthorisation(Project p, String userId) {
         // submit DELETE request
         String resource = "/projects/{projectId}/access/{userId}";
@@ -500,7 +589,7 @@ public class Client {
     }
     
     
-    // TODO Test this function
+    /* REMOVE RESOURCE AUTHORISATION */  // Tested: 01/10/2014
     public String removeResourceAuthorisation(ProjectResource r, String userId) {
         // submit DELETE request
         String resource = "/resources/{resourceId}/access/{userId}";
@@ -548,8 +637,4 @@ public class Client {
         }
         return null;
     }
-
-    //TODO publish resource     - POST
-    //TODO subscribe to resource updates - POST/WS?
-    //TODO publish resource update  - POST/WS?
 }

@@ -11,17 +11,16 @@ import net.sharemycode.model.ProjectAccess;
 import net.sharemycode.model.ProjectResource;
 import net.sharemycode.model.ResourceAccess;
 import net.sharemycode.model.ProjectResource.ResourceType;
+import net.sharemycode.model.UserProfile;
 
 import org.apache.http.client.ClientProtocolException;
+import org.json.JSONObject;
 
 /**
  * Unit test for simple App.
  */
 public class AppTest
 extends TestCase {
-    
-    private static String validProjectId;  // projectId that works
-    private static Long validResourceId;   // resourceId of a file
     
     /**
      * Create the test case
@@ -60,7 +59,12 @@ extends TestCase {
         tests.addTest(new AppTest("createResourceAuthorisationTest"));
         tests.addTest(new AppTest("getResourceAuthorisationTest"));
         tests.addTest(new AppTest("updateResourceAuthorisationTest"));
-        tests.addTest(new AppTest("removeResourceAuthorisationTest"));;
+        tests.addTest(new AppTest("removeResourceAuthorisationTest"));
+        tests.addTest(new AppTest("lookupUserByUsernameTest"));
+        tests.addTest(new AppTest("lookupUserByEmailTest"));
+        tests.addTest(new AppTest("getUserProfileTest"));
+        tests.addTest(new AppTest("updateUserProfileTest"));
+        //tests.addTest(new AppTest("updateUserAccountTest"));
         tests.addTest(new AppTest("closeClientTest"));
         return tests;
     }
@@ -250,7 +254,7 @@ extends TestCase {
         test.login("testUser", "test");
         String userId = test.lookupUserByUsername("User2");
         Project p = test.listProjects().get(0);
-        String result = test.createProjectAuthorisation(p, userId, ProjectAccess.AccessLevel.READ_WRITE);
+        String result = test.createProjectAuthorisation(p, userId, ProjectAccess.AccessLevel.OWNER);
         assertEquals("Expected Authorisation successful ", "Authorisation successful", result);
     }
     
@@ -370,5 +374,55 @@ extends TestCase {
         }
         String result = test.removeResourceAuthorisation(validResource, userId);
         assertEquals("Expected Authorisation removed", "Authorisation removed", result);
+    }
+    
+    /* LOOKUP USER BY USERNAME TEST */
+    public void lookupUserByUsernameTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        String result = test.lookupUserByUsername("testUser");
+        System.out.println(result);
+        assertNotNull(result);
+    }
+    /* LOOKUP USER BY EMAIL TEST */
+    public void lookupUserByEmailTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        String userId = test.lookupUserByUsername("testUser");
+        String result = test.lookupUserByEmail("test@test.com");
+        assertEquals("Expected matching user ID", userId, result);
+    }
+    
+    /* GET USER PROFILE TEST */
+    public void getUserProfileTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        UserProfile profile = test.getUserProfile("testUser");
+        // Print profile details to stdout
+        if(profile == null)
+            fail("Expected not null");
+        System.out.println("DisplayName: \"" + profile.getDisplayName() + 
+                "\", About: \"" + profile.getAbout() + 
+                "\", Contact: \"" + profile.getContact() + 
+                "\", Interests: \"" + profile.getInterests() + "\"");
+        assertEquals("Expected testuser", "testuser", profile.getDisplayName());
+    }
+    
+    /* UPDATE USER PROFILE TEST */
+    public void updateUserProfileTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        UserProfile update = test.updateUserProfile("testUser", "testuser", "I am a test user", "Email: test@test.com", "Testing");
+        assertEquals("Expected I am a test user", "I am a test user", update.getAbout());
+    }
+    
+    /* UPDATE USER ACCOUNT TEST */
+    public void updateUserAccountTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        JSONObject result = test.updateUserAccount("testUser", "", "", "", "", "", "Test", "User");
+        System.out.println(result);
+        
+        assertEquals("Expected User", "User", result.getString("lastName"));   
     }
 }
