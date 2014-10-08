@@ -441,4 +441,23 @@ extends TestCase {
         
         assertEquals("Expected User", "User", result.getString("lastName"));   
     }
+    
+    /* PUBLISH RESOURCE TEST */
+    public void publishResourceTest() throws IOException {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        Project p = test.listProjects().get(0);
+        String result = test.publishResource(p, null, "/home/larchibald/test.txt");
+        assertEquals("Expected Resource created", "Resource created", result);
+    }
+    
+    /* CREATE DIRECTORY TEST */
+    public void createDirectoryTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        Project p = test.listProjects().get(0);
+        ProjectResource r = null;   // create directory at root
+        String result = test.createDirectory(p, r, "newDirectory");
+        assertEquals("Expected Directory created", "Directory created", result);
+    }
 }

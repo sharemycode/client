@@ -9,6 +9,8 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 
 import javax.ws.rs.NotFoundException;
@@ -24,6 +26,7 @@ import javax.xml.ws.soap.AddressingFeature.Responses;
 import net.sharemycode.model.Project;	// JavaBean entities
 import net.sharemycode.model.ProjectAccess;
 import net.sharemycode.model.ProjectResource;
+import net.sharemycode.model.ProjectResource.ResourceType;
 import net.sharemycode.model.ResourceAccess;
 import net.sharemycode.model.UserProfile;
 
@@ -257,6 +260,66 @@ public class Client {
      */
     
     //TODO publish resource     - POST
+    public String publishResource(Project project, ProjectResource parent, String filePath) throws IOException {
+        if (project == null)
+            return "Error: No project provided";
+        if(parent != null && !parent.getResourceType().equals(ResourceType.DIRECTORY))
+            return "Error: Parent Resource must be a directory";
+        File file = new File(filePath);
+        if(file.exists()) {
+            byte[] byteData = Files.readAllBytes(Paths.get(filePath));
+            String data = Base64.encodeBase64String(byteData);
+            
+            // create ProjectResource
+            ProjectResource r = new ProjectResource();
+            r.setName(file.getName());
+            r.setParent(parent);
+            r.setProject(project);
+            r.setResourceType(ProjectResource.ResourceType.FILE);
+            
+            // prepare to post resource meta data
+            String path = "/resources/";
+            Response response = RESTClient.path(path).request().post(Entity.entity(r, MediaType.APPLICATION_JSON));
+            if (response.getStatus() != 201)
+                return "Error submitting ProjectResource";
+            URI location = response.getLocation();
+            // prepare to PUT resourceContent
+            response.close();
+            path = location.toString().substring(RESTClient.getUri().toString().length());
+            response = RESTClient.path(path).request().put(Entity.text(data));
+            int status = response.getStatus();
+            response.close();
+            if (status == 200)
+                return "Resource created";
+            else
+                return "Resource not created - " + status;
+        } else
+            return "Invalid file entered";
+    }
+    
+    /* CREATE DIRECTORY */
+    public String createDirectory(Project project, ProjectResource parent, String name) {
+        // create a new directory under the parent resource
+        if(project == null || name.equals(""))
+            return "Error: Invalid parameters";
+        if(parent != null && !parent.getResourceType().equals(ResourceType.DIRECTORY))
+            return "Error: Parent Resource must be a directory";
+        // create ProjectResource
+        ProjectResource r = new ProjectResource();
+        r.setName(name);
+        r.setProject(project);
+        r.setParent(parent);
+        r.setResourceType(ResourceType.DIRECTORY);
+        
+        Response response = RESTClient.path("/resources").request().post(Entity.entity(r, MediaType.APPLICATION_JSON));
+        int status = response.getStatus();
+        URI location = response.getLocation();
+        response.close();
+        if(status == 201)
+            return "Directory created";
+        else
+            return "Could not create directory - " + status;
+    }
     //TODO subscribe to resource updates - POST/WS?
     //TODO publish resource update  - POST/WS?
 
