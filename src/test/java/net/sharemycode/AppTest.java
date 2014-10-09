@@ -1,6 +1,7 @@
 package net.sharemycode;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import junit.framework.Test;
@@ -37,14 +38,21 @@ extends TestCase {
      */
     public static Test suite()
     {
-        TestSuite tests = new TestSuite(AppTest.class);
+        TestSuite basicTests = new TestSuite(AppTest.class);
+        basicTests.addTest(new AppTest("createUserTest"));
+        //basicTests.addTest(new AppTest("createProjectTest"));
+        basicTests.addTest(new AppTest("listProjectsTest"));
+        //basicTests.addTest(new AppTest("getProjectAccessTest"));
+        basicTests.addTest(new AppTest("closeClientTest"));
+        
+        /*
         tests.addTest(new AppTest("connectionTest"));
         tests.addTest(new AppTest("createUserTest"));
         tests.addTest(new AppTest("basicAuthTest"));
         tests.addTest(new AppTest("loginTest"));
         tests.addTest(new AppTest("getAuthStatusTest"));
         tests.addTest(new AppTest("createProjectTest"));
-        //tests.addTest(new AppTest("fileUploadTest"));
+        tests.addTest(new AppTest("createAttachmentTest"));
         tests.addTest(new AppTest("listProjectsTest"));
         tests.addTest(new AppTest("fetchProjectTest"));
         tests.addTest(new AppTest("getProjectAccessTest"));
@@ -65,8 +73,15 @@ extends TestCase {
         tests.addTest(new AppTest("getUserProfileTest"));
         tests.addTest(new AppTest("updateUserProfileTest"));
         tests.addTest(new AppTest("updateUserAccountTest"));
+        tests.addTest(new AppTest("changeProjectOwnerTest"));
+        tests.addTest(new AppTest("publishResourceTest"));
+        tests.addTest(new AppTest("updateResourceTest"));
+        tests.addTest(new AppTest("updateProjectTest"));
+        tests.addTest(new AppTest("deleteProjectTest"));
+        tests.addTest(new AppTest("deleteResourceTest"));
         tests.addTest(new AppTest("closeClientTest"));
-        return tests;
+        */
+        return basicTests;
     }
 
     /**
@@ -126,21 +141,17 @@ extends TestCase {
         String url = test.createProject("testProject", "0.0.Test", "This is a test Project", null);
         assertTrue(url.length() == 6);  // returns a 6 character URL
     }
-    /*
-    public void fileUploadTest() {
+    
+    /* CREATE ATTACHMENT TEST */
+    public void createAttachmentTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
-        String filePath = "/home/larchibald/test.txt";
-        JSONObject result = null;
-        try {
-            result = test.fileUpload(filePath);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        assertTrue(result.getBoolean("success"));
-
+        test.login("testUser", "test");
+        String filePath = "/home/lachlan/test.txt";
+        String result = test.createAttachment(filePath);
+        System.out.println("Attachment id: " + result);
+        assertTrue(Long.valueOf(result) > -1L);
     }
-     */
+     
     /* LIST PROJECTS TEST */
     public void listProjectsTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
@@ -496,5 +507,39 @@ extends TestCase {
         String username = "user2";
         String result = test.changeProjectOwner(p, username);
         assertEquals("Expected Project owner updated", "Project owner updated", result);
+    }
+    
+    /* DELETE RESOURCE TEST */
+    public void deleteResourceTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        Project p = test.listProjects().get(0);
+        ProjectResource r = test.listResources(p).get(0);
+        int result = test.deleteResource(r);
+        assertEquals("Expected 200", 200, result);
+    }
+    
+    /* DELETE PROJECT TEST */
+    public void deleteProjectTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        Project p = test.listProjects().get(0);
+        int result = test.deleteProject(p);
+        assertEquals("Expected 200", 200, result);
+    }
+    
+    /* CreateProject with attachments test */
+    public void createProjectWithAttahmentsTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        // create some attachments
+        List<String> attachments = new ArrayList<String>();
+        attachments.add(test.createAttachment("/home/lachlan/test.txt"));
+        attachments.add(test.createAttachment("/home/lachlan/Sudoku.zip"));
+        test.createProject("TestProject", "0.0.1", "test description", attachments);
+        List<Project> projects = test.listProjects();
+        Project p = projects.get(0);
+        List<ProjectResource> resources = test.listResources(p);
+        assertTrue(resources.size() > 0);
     }
 }

@@ -45,7 +45,7 @@ public class Client {
     public static final int MAX_UPLOAD = 10485760; // 10MB
 
     // Client instance variables
-    private String restTarget;
+    private String target;
     private javax.ws.rs.client.Client client;
     private WebTarget RESTClient;
     
@@ -71,9 +71,9 @@ public class Client {
      */
     public Client(String domain, String directory, String RESTEndpoint) {
         // Constructor: create HTTPClient
-        restTarget = "http://" + domain + directory + RESTEndpoint;
+        target = "http://" + domain + directory;
         client = ClientBuilder.newClient();
-        RESTClient = client.target(restTarget);
+        RESTClient = client.target(target + RESTENDPOINT);
     }
     
     public WebTarget getClient() {
@@ -201,13 +201,38 @@ public class Client {
             return "Error: " + status +  " - " + message;
     }
     
-    /* FILE UPLOAD */
-    // TODO Complete this function
-    public JSONObject fileUpload(String path) throws IOException {
+    /* CREATE ATTACHMENT */
+    // Creates attachment using REST endpoint
+    public String createAttachment(String filePath) {
+        File file = new File(filePath);
+        if(file.exists()) {
+            try {
+                byte[] byteData = Files.readAllBytes(Paths.get(filePath));
+    
+                String data = Base64.encodeBase64String(byteData);
+                
+                String path = "/projects/attachments/" + file.getName();
+                Response response = RESTClient.path(path).request().post(Entity.text(data));
+                int status = response.getStatus();
+                String message = response.readEntity(String.class);
+                if(status == 200)
+                    return message;
+                else {
+                    System.err.println(status + ": " + message);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return "Error: check file path is a valid zip or file.";
+    }
+    
+    /*  // Using Java servlet, not working.
+    public JSONObject fileUpload(String filePath) throws IOException {
 
-        File file = new File(path);
+        File file = new File(filePath);
 
-        URL url = new URL("http://" + DIRECTORY + DOMAIN + UPLOADENDPOINT);
+        URL url = new URL(target + UPLOADENDPOINT);
         HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
         httpConnection.setUseCaches(false);
         httpConnection.setDoOutput(true);
@@ -220,7 +245,7 @@ public class Client {
         // create input stream for reading from file
         FileInputStream inputStream = new FileInputStream(file);
 
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[4096];
         int bytesRead = -1;
         System.out.println("DEBUG: Writing data to server");
         while((bytesRead = inputStream.read(buffer)) != -1) {
@@ -230,8 +255,9 @@ public class Client {
         System.out.println("DEBUG: Data written");
         outputStream.close();
         inputStream.close();
-        // reads server's response
+        int status = httpConnection.getResponseCode();
         String message = null;
+        // reads server's response
         try {
             message = IOUtils.toString(httpConnection.getInputStream(), "UTF-8");
         } catch (IOException e) {
@@ -240,24 +266,9 @@ public class Client {
         System.out.println("Server's response: " + message);
         return new JSONObject(message);
     }
+    */
 
-    // TODO Create attachment
-    /* Upload Attachment */
-    /*    public String createAttachment(String filePath) {
-        // upload attachment, return Long id encoded as String
-        File file = new File(filePath);
-
-        // TODO AJAX Upload to UPLOADENDPOINT
-
-        HttpRequest response;
-        String message = IOUtils.toString(response.getEntity().getContent());
-        JSONObject result = new JSONObject(message);
-        if(result.getBoolean("success"))
-            return result.getString("id");
-        else
-            return null;
-    }
-     */
+     
     
     //TODO publish resource     - POST
     public String publishResource(Project project, ProjectResource parent, String filePath) throws IOException {
@@ -698,10 +709,10 @@ public class Client {
 
     // TODO delete project       - DELETE
     /* DELETE PROJECT - DELETE */
-    public int deleteProject(String projectId) {
+    public int deleteProject(Project p) {
         String resource = "/projects/{projectId}";
         Response response = RESTClient.path(resource)
-                .resolveTemplate("projectId", projectId).request().delete();
+                .resolveTemplate("projectId", p.getId()).request().delete();
         int status = response.getStatus();
         response.close();
         return status;
@@ -709,10 +720,10 @@ public class Client {
 
     // TODO delete resource      - DELETE
     /* DELETE RESOURCE - DELETE */
-    public int deleteResource(Long resourceId) {
+    public int deleteResource(ProjectResource r) {
         String resource = "/resources/{resourceId}";
         Response response = RESTClient.path(resource)
-                .resolveTemplate("resourceId", resourceId).request().delete();
+                .resolveTemplate("resourceId", r.getId()).request().delete();
         int status = response.getStatus();
         response.close();
         return status;
