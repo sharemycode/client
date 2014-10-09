@@ -447,7 +447,7 @@ extends TestCase {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
         Project p = test.listProjects().get(0);
-        String result = test.publishResource(p, null, "/home/larchibald/test.txt");
+        String result = test.publishResource(p, null, "/home/lachlan/test.txt");
         assertEquals("Expected Resource created", "Resource created", result);
     }
     
@@ -459,5 +459,31 @@ extends TestCase {
         ProjectResource r = null;   // create directory at root
         String result = test.createDirectory(p, r, "newDirectory");
         assertEquals("Expected Directory created", "Directory created", result);
+    }
+    
+    /* UPDATE PROJECT TEST */
+    public void updateProjectTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        Project p = test.listProjects().get(0);
+        String result = test.updateProject(p, "newProjectName", "0.0.1", "This is a new description");
+        assertEquals("Expected Project updated", "Project updated", result);
+    }
+    
+    /* UPDATE RESOURCE TEST */
+    public void updateResourceTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        Project p = test.listProjects().get(0);
+        ProjectResource validResource = null;
+        List<ProjectResource> resources = test.listResources(p);
+        for(ProjectResource r : resources) {
+            if(r.getResourceType() == ResourceType.FILE) {
+                validResource = r;
+                break;
+            }
+        }
+        String result = test.updateResource(validResource, "/home/lachlan/test2.txt");
+        assertEquals("Expected Resource updated", "Resource updated", result);
     }
 }

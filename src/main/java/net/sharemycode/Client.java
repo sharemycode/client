@@ -514,7 +514,59 @@ public class Client {
 
     /* --- PUT REQUESTS --- */
     // TODO UpdateProject
+    public String updateProject(Project p, String name, String version, String description) {
+        // update project information - cannot update owner from this request
+        if (p == null)
+            return "Error: Project must not be null";
+        p.setName(name);
+        p.setVersion(version);
+        p.setDescription(description);
+        String path = "/projects/{id}";
+        Response response = RESTClient.path(path).resolveTemplate("id", p.getId())
+                .request().put(Entity.entity(p, MediaType.APPLICATION_JSON));
+        int status = response.getStatus();
+        Project u = response.readEntity(Project.class);
+        response.close();
+        if (status == 200) {
+            System.out.println("Project ID: " + u.getId() +
+                    ", Project Name: " + u.getName() +
+                    ", Owner: " + u.getOwner() + 
+                    ", Version: " + u.getVersion() +
+                    ", URL:" + u.getUrl() + 
+                    ", Description: " + u.getDescription());
+            return "Project updated";
+        } else
+            return "Project not modified - " + status;
+    }
+    
     // TODO UpdateResource
+    public String updateResource(ProjectResource r, String filePath) {
+        // update existing resource with new ResourceContent
+        File file = new File(filePath);
+        if(file.exists()) {
+            byte[] byteData;
+            try {
+                byteData = Files.readAllBytes(Paths.get(filePath));
+                String data = Base64.encodeBase64String(byteData);
+                // prepare to PUT resourceContent
+                String path = "/resources/{id}";
+                Response response = RESTClient.path(path).resolveTemplate("id", r.getId())
+                        .request().put(Entity.text(data));
+                int status = response.getStatus();
+                response.close();
+                if (status == 200)
+                    return "Resource updated";
+                else
+                    return "Resource not modified - " + status;
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+                return "Error reading file";
+            }
+        } else
+            return "Invalid file entered";
+    }
+    
     
     /* UPDATE USER ACCOUNT */   // Tested 02/10/2014
     // Currently returns JSON user data. This is probably a security issue.
