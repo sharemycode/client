@@ -486,4 +486,15 @@ extends TestCase {
         String result = test.updateResource(validResource, "/home/lachlan/test2.txt");
         assertEquals("Expected Resource updated", "Resource updated", result);
     }
+    
+    /* CHANGE PROJECT OWNER TEST */
+    public void changeProjectOwnerTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.createUser("User2", "user2@test.com", "user2@test.com", "user2", "user2", "user", "two");
+        test.login("testUser", "test");
+        Project p = test.listProjects().get(0);
+        String username = "user2";
+        String result = test.changeProjectOwner(p, username);
+        assertEquals("Expected Project owner updated", "Project owner updated", result);
+    }
 }

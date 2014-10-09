@@ -329,6 +329,7 @@ public class Client {
     public String getAuthStatus() {
         Response response = RESTClient.path("/auth/status").request().get();
         String message = response.readEntity(String.class);
+        response.close();
         return message;
     }
     
@@ -339,6 +340,7 @@ public class Client {
         Response response = RESTClient.path(resource).resolveTemplate("username", username).request(MediaType.APPLICATION_JSON).get();
         try {
             JSONObject user = new JSONObject(response.readEntity(String.class));
+            response.close();
             return user.getString("id");
         } catch(JSONException e) {
             System.err.println("Problem getting data");
@@ -356,6 +358,7 @@ public class Client {
                 .request(MediaType.APPLICATION_JSON).get();
         try {
             JSONObject user = new JSONObject(response.readEntity(String.class));
+            response.close();
             return user.getString("id");
         } catch(JSONException e) {
             System.err.println("Problem getting data");
@@ -372,6 +375,7 @@ public class Client {
                 .resolveTemplate("username", username)
                 .request(MediaType.APPLICATION_JSON).get();
         UserProfile profile = response.readEntity(UserProfile.class);
+        response.close();
         return profile;
     }
     
@@ -539,6 +543,23 @@ public class Client {
             return "Project not modified - " + status;
     }
     
+    /* CHANGE PROJECT OWNER */
+    public String changeProjectOwner(Project p, String username) {
+        // change the official project owner
+        if (p == null)
+            return "Error: Project must not be null";
+        String path = "/projects/{id}/owner";
+        Response response = RESTClient.path(path).resolveTemplate("id", p.getId())
+                .request().put(Entity.text(username));
+        int status = response.getStatus();
+        String message = response.readEntity(String.class);
+        response.close();
+        if(status == 200)
+            return "Project owner updated";
+        else
+            return status + ": " + message; 
+    }
+    
     // TODO UpdateResource
     public String updateResource(ProjectResource r, String filePath) {
         // update existing resource with new ResourceContent
@@ -682,6 +703,7 @@ public class Client {
         Response response = RESTClient.path(resource)
                 .resolveTemplate("projectId", projectId).request().delete();
         int status = response.getStatus();
+        response.close();
         return status;
     }
 
@@ -692,6 +714,7 @@ public class Client {
         Response response = RESTClient.path(resource)
                 .resolveTemplate("resourceId", resourceId).request().delete();
         int status = response.getStatus();
+        response.close();
         return status;
     }
 
@@ -754,6 +777,7 @@ public class Client {
                     .header("Authorization", "Basic " + encoding)
                     .post(Entity.text(""));
             String token = response.readEntity(String.class);
+            response.close();
             return token;
         } catch(Exception e) {
             e.printStackTrace();
