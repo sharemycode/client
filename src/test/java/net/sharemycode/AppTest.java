@@ -530,8 +530,7 @@ extends TestCase {
         test.login("testUser", "test");
         // create some attachments
         List<String> attachments = new ArrayList<String>();
-        attachments.add(test.createAttachment("/home/lachlan/test.txt"));
-        attachments.add(test.createAttachment("/home/lachlan/Sudoku.zip"));
+        attachments.add(test.createAttachment("/home/lachlan/test.zip"));
         Project p = test.createProject("TestProject", "0.0.1", "test description", attachments);
         List<ProjectResource> resources = test.listResources(p);
         assertTrue(resources.size() > 0);

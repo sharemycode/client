@@ -727,7 +727,7 @@ public class Client {
     
     /* --- DELETE REQUESTS --- */
 
-    /* DELETE PROJECT - DELETE */
+    /* DELETE PROJECT - DELETE */	// Tested: 14/10/2014
     public int deleteProject(Project p) {
         String resource = "/projects/{projectId}";
         Response response = RESTClient.path(resource)
@@ -737,11 +737,11 @@ public class Client {
         return status;
     }
 
-    /* DELETE RESOURCE - DELETE */
+    /* DELETE RESOURCE - DELETE */	// Tested: 14/10/2014
     public int deleteResource(ProjectResource r) {
-        String resource = "/resources/{resourceId}";
-        Response response = RESTClient.path(resource)
-                .resolveTemplate("resourceId", r.getId()).request().delete();
+        String path = "/resources/{id}";
+        Response response = RESTClient.path(path)
+                .resolveTemplate("id", r.getId()).request().delete();
         int status = response.getStatus();
         response.close();
         return status;
