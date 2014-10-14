@@ -4,12 +4,13 @@ import java.io.Serializable;
 
 public class Project implements Serializable {
 
-    private String id;	// unique Project ID
-    private String url;			// unique project URL (generated using generateURL)
-    private String name;		// project name
-    private String description;	// project description
-    private String owner_id;	// user ID of project owner (referential integrity not enforced)
-    private String version;		// version of the project
+    private String id; // unique Project ID
+    private String url; // unique project URL (generated using generateURL)
+    private String name; // project name
+    private String description; // project description
+    private String owner_id; // user ID of project owner (referential integrity
+                             // not enforced)
+    private String version; // version of the project
 
     public String getId() {
         return id;
@@ -50,9 +51,9 @@ public class Project implements Serializable {
     public void setDescription(String desc) {
         this.description = desc;
     }
-    
+
     public void setVersion(String version) {
-    	this.version = version;
+        this.version = version;
     }
 
     public String getVersion() {
