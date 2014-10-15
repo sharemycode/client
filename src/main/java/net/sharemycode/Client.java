@@ -31,19 +31,10 @@ import org.json.JSONObject;
 
 public class Client {
 
-    public static final String DOMAIN = "localhost:8080"; // The domain of your
-                                                          // REST service.
-                                                          // Include the port
-                                                          // after : if
-                                                          // required.
-    public static final String DIRECTORY = ""; // The directory where your
-                                               // service webapp lives
-    public static final String RESTENDPOINT = "/sharemycode/rest"; // REST
-                                                                   // endpoint
-                                                                   // directory.
-    public static final String UPLOADENDPOINT = "/sharemycode/upload"; // File
-                                                                       // upload
-                                                                       // endpoint
+    public static final String DOMAIN = "localhost:8080";   // The domain of your REST service. Include the port after ':' if required.
+    public static final String DIRECTORY = "";  // The directory where your service webapp lives
+    public static final String RESTENDPOINT = "/sharemycode/rest";  // REST endpoint directory.
+    public static final String UPLOADENDPOINT = "/sharemycode/upload";  // File upload endpoint
     public static final int MAX_UPLOAD = 10485760; // 10MB
 
     // Client instance variables
@@ -109,12 +100,13 @@ public class Client {
 
     /*
      * *********************************************************
-     * PROCEDURES *********************************************************
+     * PROCEDURES
+     * *********************************************************
      */
 
     /* --- POST REQUESTS --- */
 
-    /* CREATE USER - POST JSON */// Tested: 23/09/2014
+    /* CREATE USER - POST JSON */   // Tested: 23/09/2014
     public String createUser(String username, String email, String emailc,
             String password, String passwordc, String firstName, String lastName) {
         // register a new user
@@ -134,8 +126,7 @@ public class Client {
         return message;
     }
 
-    /* CREATE PROJECT - POST JSON */// Tested 20/09/2014
-    // TODO return Project instead
+    /* CREATE PROJECT - POST JSON */    // Tested 20/09/2014
     public Project createProject(String name, String version,
             String description, List<String> attachments) {
         // create a new project, returns url to project
@@ -143,8 +134,7 @@ public class Client {
         project.put("name", name);
         project.put("version", version);
         project.put("description", description);
-        project.put("attachments", attachments); // attachments are Long encoded
-                                                 // as String
+        project.put("attachments", attachments); // attachments are Long encoded as String
         String data = project.toString();
         Response response = RESTClient.path("/projects").request()
                 .post(Entity.json(data));
@@ -162,7 +152,7 @@ public class Client {
         return result;
     }
 
-    /* CREATE PROJECT AUTHORISATION */// Tested: 01/10/2014
+    /* CREATE PROJECT AUTHORISATION */  // Tested: 01/10/2014
     public String createProjectAuthorisation(Project p, String userId,
             ProjectAccess.AccessLevel accessLevel) {
         // create ProjectAccess object
@@ -190,7 +180,7 @@ public class Client {
             return "Error: " + status + " - " + message;
     }
 
-    /* CREATE RESOURCE AUTHORISATION */// Tested: 01/10/2014
+    /* CREATE RESOURCE AUTHORISATION */ // Tested: 01/10/2014
     public String createResourceAuthorisation(ProjectResource r, String userId,
             ResourceAccess.AccessLevel accessLevel) {
         // create ResourceAccess object
@@ -217,7 +207,7 @@ public class Client {
             return "Error: " + status + " - " + message;
     }
 
-    /* CREATE ATTACHMENT */// Tested 09/10/2014
+    /* CREATE ATTACHMENT */ // Tested 09/10/2014
     // Creates attachment using REST endpoint
     public String createAttachment(String filePath) {
         File file = new File(filePath);
@@ -276,7 +266,7 @@ public class Client {
      * JSONObject(message); }
      */
 
-    /* PUBLISH RESOURCE */// Tested 08/10/2014
+    /* PUBLISH RESOURCE */  // Tested 08/10/2014
     public String publishResource(Project project, ProjectResource parent,
             String filePath) throws IOException {
         if (project == null)
@@ -318,7 +308,7 @@ public class Client {
             return "Invalid file entered";
     }
 
-    /* CREATE DIRECTORY */
+    /* CREATE DIRECTORY */  // Tested: 14/10/2014
     public ProjectResource createDirectory(Project project,
             ProjectResource parent, String name) {
         // create a new directory under the parent resource
@@ -355,7 +345,7 @@ public class Client {
 
     /* --- GET REQUESTS --- */
 
-    /* GET AUTH STATUS */// Tested: 25/09/2014
+    /* GET AUTH STATUS */   // Tested: 25/09/2014
     public String getAuthStatus() {
         Response response = RESTClient.path("/auth/status").request().get();
         String message = response.readEntity(String.class);
@@ -363,9 +353,9 @@ public class Client {
         return message;
     }
 
-    /* LOOKUP USER BY USERNAME */// Tested 02/10/2014
-    // Currently returns userId for use in authorisation methods. This method
-    // may need to be removed
+    /* LOOKUP USER BY USERNAME */   // Tested 02/10/2014
+    // Currently returns userId for use in authorisation methods. 
+    // This method may need to be removed
     public String lookupUserByUsername(String username) {
         String resource = "/users/{username}";
         Response response = RESTClient.path(resource)
@@ -382,7 +372,7 @@ public class Client {
         return null;
     }
 
-    /* LOOKUP USER BY EMAIL */// Tested 02/10/2014
+    /* LOOKUP USER BY EMAIL */  // Tested 02/10/2014
     // Currently returns userId. This may need to return username only.
     public String lookupUserByEmail(String email) {
         String resource = "/users/search/";
@@ -400,7 +390,7 @@ public class Client {
         return null;
     }
 
-    /* GET USER PROFILE */// Tested 02/10/2014
+    /* GET USER PROFILE */  // Tested 02/10/2014
     public UserProfile getUserProfile(String username) {
         String resource = "/users/{username}/profile";
         Response response = RESTClient.path(resource)
@@ -411,7 +401,7 @@ public class Client {
         return profile;
     }
 
-    /* LIST PROJECTS */// Tested 23/09/2014
+    /* LIST PROJECTS */ // Tested 23/09/2014
     public List<Project> listProjects() {
         // return a list of user's projects
         GenericType<List<Project>> projectType = new GenericType<List<Project>>() {
@@ -421,7 +411,7 @@ public class Client {
         return projects;
     }
 
-    /* LIST SHARED PROJECTS */// Tested 02/10/2014
+    /* LIST SHARED PROJECTS */  // Tested 02/10/2014
     public List<Project> listSharedProjects() {
         GenericType<List<Project>> projectType = new GenericType<List<Project>>() {
         };
@@ -430,7 +420,7 @@ public class Client {
         return projects;
     }
 
-    /* FETCH PROJECT */// Tested 10/10/2014
+    /* FETCH PROJECT */ // Tested 10/10/2014
     public int fetchProject(Project p) {
         int status = 0;
         OutputStream outputStream = null;
@@ -471,7 +461,7 @@ public class Client {
         return status;
     }
 
-    /* LIST RESOURCES */// Tested 23/09/2014
+    /* LIST RESOURCES */    // Tested 23/09/2014
     public List<ProjectResource> listResources(Project p) {
         // Return a list of resources for a project as JSON
         String resource = "/projects/{projectId}/resources";
@@ -488,8 +478,25 @@ public class Client {
             return null;
         }
     }
-
-    /* FETCH RESOURCE */// Tested 23/09/2014
+    
+    /* LIST CHILD RESOUCES */   // Tested: 15/10/2014
+    public List<ProjectResource> listChildResources(ProjectResource r) {
+        // Return a list of child resources for resource
+        String resource = "/resources/{id}/children";
+        GenericType<List<ProjectResource>> resourceType = new GenericType<List<ProjectResource>>() {
+        };
+        try {
+            List<ProjectResource> resources = RESTClient.path(resource)
+                    .resolveTemplate("id", r.getId()).request()
+                    .get(resourceType);
+            return resources;
+        } catch (NotFoundException e) {
+            System.err.println("Exception: " + e);
+            return null;
+        }
+    }
+    
+    /* FETCH RESOURCE */    // Tested 23/09/2014
     public int fetchResource(ProjectResource r) {
         int status = 0;
         OutputStream outputStream = null;
@@ -558,7 +565,7 @@ public class Client {
             return null;
     }
 
-    /* GET PROJECT AUTHORISATION */// Tested: 01/10/2014
+    /* GET PROJECT AUTHORISATION */ // Tested: 01/10/2014
     public ProjectAccess.AccessLevel getProjectAuthorisation(Project p,
             String userId) {
         // get the project access level for a specific user
@@ -573,7 +580,7 @@ public class Client {
             return null;
     }
 
-    /* GET RESOURCE AUTHORISATION */// Tested: 01/10/2014
+    /* GET RESOURCE AUTHORISATION */    // Tested: 01/10/2014
     public ResourceAccess.AccessLevel getResourceAuthorisation(
             ProjectResource r, String userId) {
         // get the resource access level for a specific user
@@ -590,7 +597,7 @@ public class Client {
 
     /* --- PUT REQUESTS --- */
 
-    /* UPDATE PROJECT */// Tested 09/10/2014
+    /* UPDATE PROJECT */    // Tested 09/10/2014
     public String updateProject(Project p, String name, String version,
             String description) {
         // update project information - cannot update owner from this request
@@ -616,7 +623,7 @@ public class Client {
             return "Project not modified - " + status;
     }
 
-    /* ADD ATTACHMENTS TO PROJECT */// Tested 14/10/2014
+    /* ADD ATTACHMENTS TO PROJECT */    // Tested 14/10/2014
     public String addAttachmentsToProject(Project p, List<String> attachments) {
         // add attachments to existing project
         if (p == null || attachments == null)
@@ -634,7 +641,7 @@ public class Client {
             return "Failure: " + status;
     }
 
-    /* CHANGE PROJECT OWNER */// Tested 09/10/2014
+    /* CHANGE PROJECT OWNER */  // Tested 09/10/2014
     public String changeProjectOwner(Project p, String username) {
         // change the official project owner
         if (p == null)
@@ -652,7 +659,7 @@ public class Client {
             return status + ": " + message;
     }
 
-    /* UPDATE RESOURCE */// Tested 09/10/2014
+    /* UPDATE RESOURCE */   // Tested 09/10/2014
     public String updateResource(ProjectResource r, String filePath) {
         // update existing resource with new ResourceContent
         File file = new File(filePath);
@@ -724,7 +731,7 @@ public class Client {
         return update;
     }
 
-    /* UPDATE USER ACCOUNT */// Tested 02/10/2014
+    /* UPDATE USER ACCOUNT */   // Tested 02/10/2014
     // Currently returns JSON user data. This is probably a security issue.
     // It should probably only return a success status
     public JSONObject updateUserAccount(String username, String newUsername,
@@ -761,7 +768,7 @@ public class Client {
         return null;
     }
 
-    /* UPDATE USER PROFILE */// Tested: 02/10/2014
+    /* UPDATE USER PROFILE */   // Tested: 02/10/2014
     public UserProfile updateUserProfile(String username, String displayName,
             String about, String contact, String interests) {
         UserProfile profile = new UserProfile();
@@ -784,7 +791,7 @@ public class Client {
             return null;
     }
 
-    /* UPDATE PROJECT AUTHORISATION */// Tested: 01/10/2014
+    /* UPDATE PROJECT AUTHORISATION */  // Tested: 01/10/2014
     public String updateProjectAuthorisation(Project p, String userId,
             ProjectAccess.AccessLevel accessLevel) {
         // create ProjectAccess object
@@ -811,7 +818,7 @@ public class Client {
             return "Error: " + status + " - " + message;
     }
 
-    /* UPDATE RESOURCE AUTHORISATION */// Tested: 01/10/2014
+    /* UPDATE RESOURCE AUTHORISATION */ // Tested: 01/10/2014
     public String updateResourceAuthorisation(ProjectResource r, String userId,
             ResourceAccess.AccessLevel accessLevel) {
         // create ResourceAccess object
@@ -839,7 +846,7 @@ public class Client {
 
     /* --- DELETE REQUESTS --- */
 
-    /* DELETE PROJECT - DELETE */// Tested: 14/10/2014
+    /* DELETE PROJECT - DELETE */   // Tested: 14/10/2014
     public int deleteProject(Project p) {
         String resource = "/projects/{projectId}";
         Response response = RESTClient.path(resource)
@@ -849,7 +856,7 @@ public class Client {
         return status;
     }
 
-    /* DELETE RESOURCE - DELETE */// Tested: 14/10/2014
+    /* DELETE RESOURCE - DELETE */  // Tested: 14/10/2014
     public int deleteResource(ProjectResource r) {
         String path = "/resources/{id}";
         Response response = RESTClient.path(path)
@@ -859,7 +866,7 @@ public class Client {
         return status;
     }
 
-    /* REMOVE PROJECT AUTHORISATION */// Tested: 01/10/2014
+    /* REMOVE PROJECT AUTHORISATION */  // Tested: 01/10/2014
     public String removeProjectAuthorisation(Project p, String userId) {
         // submit DELETE request
         String resource = "/projects/{projectId}/access/{userId}";
@@ -876,7 +883,7 @@ public class Client {
             return "Error: " + status + " - " + message;
     }
 
-    /* REMOVE RESOURCE AUTHORISATION */// Tested: 01/10/2014
+    /* REMOVE RESOURCE AUTHORISATION */ // Tested: 01/10/2014
     public String removeResourceAuthorisation(ProjectResource r, String userId) {
         // submit DELETE request
         String resource = "/resources/{resourceId}/access/{userId}";
@@ -895,7 +902,7 @@ public class Client {
 
     /* USER AUTHENTICATION */
 
-    /* USER LOGIN */// Tested: 25/06/2014
+    /* USER LOGIN */    // Tested: 25/06/2014
     public String login(String username, String password) {
         // submit login request
         if (username == null || password == null)
@@ -909,7 +916,7 @@ public class Client {
             return "Login failed";
     }
 
-    /* HTTP BASIC AUTHENTICATION */// Tested: 25/09/2014
+    /* HTTP BASIC AUTHENTICATION */ // Tested: 25/09/2014
     public String httpBasicAuth(String username, String password) {
         try {
             String encoding = Base64.encodeBase64String(new String(username

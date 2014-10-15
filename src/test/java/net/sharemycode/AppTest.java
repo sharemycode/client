@@ -37,46 +37,12 @@ public class AppTest extends TestCase {
     public static Test suite() {
         TestSuite basicTests = new TestSuite(AppTest.class);
         basicTests.addTest(new AppTest("createUserTest"));
-        // basicTests.addTest(new AppTest("createProjectTest"));
+        basicTests.addTest(new AppTest("createProjectTest"));
         basicTests.addTest(new AppTest("listProjectsTest"));
-        // basicTests.addTest(new AppTest("getProjectAccessTest"));
+        basicTests.addTest(new AppTest("getProjectAccessTest"));
+        basicTests.addTest(new AppTest("addAttachmentsToProjectTest"));
         basicTests.addTest(new AppTest("closeClientTest"));
 
-        /*
-         * tests.addTest(new AppTest("connectionTest")); tests.addTest(new
-         * AppTest("createUserTest")); tests.addTest(new
-         * AppTest("basicAuthTest")); tests.addTest(new AppTest("loginTest"));
-         * tests.addTest(new AppTest("getAuthStatusTest")); tests.addTest(new
-         * AppTest("createProjectTest")); tests.addTest(new
-         * AppTest("createAttachmentTest")); tests.addTest(new
-         * AppTest("listProjectsTest")); tests.addTest(new
-         * AppTest("fetchProjectTest")); tests.addTest(new
-         * AppTest("getProjectAccessTest")); tests.addTest(new
-         * AppTest("getResourceAccessTest")); tests.addTest(new
-         * AppTest("createProjectAuthorisationTest")); tests.addTest(new
-         * AppTest("getProjectAuthorisationTest")); tests.addTest(new
-         * AppTest("updateProjectAuthorisationTest")); tests.addTest(new
-         * AppTest("removeProjectAuthorisationTest")); tests.addTest(new
-         * AppTest("listResourcesTest")); tests.addTest(new
-         * AppTest("fetchResourceTest")); tests.addTest(new
-         * AppTest("getResourceAccessTest")); tests.addTest(new
-         * AppTest("createResourceAuthorisationTest")); tests.addTest(new
-         * AppTest("getResourceAuthorisationTest")); tests.addTest(new
-         * AppTest("updateResourceAuthorisationTest")); tests.addTest(new
-         * AppTest("removeResourceAuthorisationTest")); tests.addTest(new
-         * AppTest("lookupUserByUsernameTest")); tests.addTest(new
-         * AppTest("lookupUserByEmailTest")); tests.addTest(new
-         * AppTest("getUserProfileTest")); tests.addTest(new
-         * AppTest("updateUserProfileTest")); tests.addTest(new
-         * AppTest("updateUserAccountTest")); tests.addTest(new
-         * AppTest("changeProjectOwnerTest")); tests.addTest(new
-         * AppTest("publishResourceTest")); tests.addTest(new
-         * AppTest("updateResourceTest")); tests.addTest(new
-         * AppTest("updateProjectTest")); tests.addTest(new
-         * AppTest("deleteProjectTest")); tests.addTest(new
-         * AppTest("deleteResourceTest")); tests.addTest(new
-         * AppTest("closeClientTest"));
-         */
         return basicTests;
     }
 
@@ -87,19 +53,10 @@ public class AppTest extends TestCase {
         assertTrue(true);
     }
 
-    public static final String DOMAIN = "localhost:8080"; // The domain of your
-                                                          // REST service.
-                                                          // Include the port
-                                                          // after : if
-                                                          // required.
-    public static final String DIRECTORY = ""; // The directory where your
-                                               // service webapp lives
-    public static final String RESTENDPOINT = "/sharemycode/rest"; // REST
-                                                                   // endpoint
-                                                                   // directory.
-    public static final String UPLOADENDPOINT = "/sharemycode/upload"; // File
-                                                                       // upload
-                                                                       // endpoint
+    public static final String DOMAIN = "localhost:8080";   // The domain of your REST service. Include the port after ':' if required.
+    public static final String DIRECTORY = "";  // The directory where your service webapp lives
+    public static final String RESTENDPOINT = "/sharemycode/rest";  // REST endpoint directory.
+    public static final String UPLOADENDPOINT = "/sharemycode/upload";  // File upload endpoint
 
     /* CONNECTION TEST */
     public void connectionTest() throws IOException {
@@ -127,13 +84,13 @@ public class AppTest extends TestCase {
         assertTrue(token.length() > 0);
     }
 
-    /* LOGIN TEST */// Requires createUser() to be completed
+    /* LOGIN TEST */    // Requires createUser() to be completed
     public void loginTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         String result = test.login("testUser", "test");
         assertTrue(result.equals("Login successful!"));
     }
-
+    /* GET AUTH STATUS TEST */
     public void getAuthStatusTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
@@ -198,7 +155,7 @@ public class AppTest extends TestCase {
         assertEquals("Expected 200", 200, status);
     }
 
-    /* LIST RESOURCES TEST */// requires a valid projectId
+    /* LIST RESOURCES TEST */   // requires a valid projectId
     public void listResourcesTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
@@ -206,16 +163,49 @@ public class AppTest extends TestCase {
         List<ProjectResource> resources = null;
         for (Project p : projects) {
             resources = test.listResources(p);
-            if (resources == null)
-                fail("Resources could not be retrieved. No resources exist.");
-            for (ProjectResource r : resources) {
-                System.out.println("Resource ID: " + r.getId()
-                        + ", Resource Name: " + r.getName() + ", Type: "
-                        + r.getResourceType());
+            if (resources.size() >0 ) {
+                for (ProjectResource r : resources) {
+                    System.out.println("Resource ID: " + r.getId()
+                            + ", Resource Name: " + r.getName() + ", Type: "
+                            + r.getResourceType());
+                }
+                break;
             }
         }
         assertTrue(resources.size() > 0);
     }
+    
+    /* LIST CHILD RESOUCES TEST */
+    public void listChildResourcesTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        List<Project> projects = test.listProjects();
+        List<ProjectResource> resources = null;
+        ProjectResource validResource = null;
+        for (Project p : projects) {
+            resources = test.listResources(p);
+            if (resources.size() >0 ) {
+                for (ProjectResource r : resources) {
+                    if (r.getResourceType().equals(ResourceType.DIRECTORY)) {
+                        validResource = r;
+                        break;
+                    }
+                }
+                if (validResource != null)
+                    break;
+            }
+        }
+        List<ProjectResource> children = test.listChildResources(validResource);
+        if(children.size() == 0)
+            fail("No children for resource");
+        for(ProjectResource c : children) {
+            System.out.println("Resource ID: " + c.getId()
+                    + ", Resource Name: " + c.getName() + ", Type: "
+                    + c.getResourceType());
+        }
+        assertTrue(resources.size() > 0);
+    }
+    
 
     /* FETCH RESOURCE TEST */// requires a valid file resourceId
     public void fetchResourceTest() {
@@ -231,7 +221,8 @@ public class AppTest extends TestCase {
                     break;
                 }
             }
-
+            if (validResource != null)
+                break;
         }
         assertTrue(test.fetchResource(validResource) == 200);
     }
@@ -346,7 +337,8 @@ public class AppTest extends TestCase {
                     break;
                 }
             }
-
+            if (validResource != null)
+                break;
         }
         String result = test.createResourceAuthorisation(validResource, userId,
                 ResourceAccess.AccessLevel.READ_WRITE);
@@ -371,6 +363,8 @@ public class AppTest extends TestCase {
                     break;
                 }
             }
+            if (validResource != null)
+                break;
         }
         assertNotNull(test.getResourceAuthorisation(validResource, userId));
     }
@@ -392,6 +386,8 @@ public class AppTest extends TestCase {
                     break;
                 }
             }
+            if (validResource != null)
+                break;
         }
         test.createResourceAuthorisation(validResource, userId,
                 ResourceAccess.AccessLevel.READ_WRITE);
@@ -415,7 +411,8 @@ public class AppTest extends TestCase {
                     break;
                 }
             }
-
+            if (validResource != null)
+                break;
         }
         String result = test.removeResourceAuthorisation(validResource, userId);
         assertEquals("Expected Authorisation removed", "Authorisation removed",
@@ -597,7 +594,7 @@ public class AppTest extends TestCase {
     }
 
     /* CreateProject with attachments test */
-    public void createProjectWithAttahmentsTest() {
+    public void createProjectWithAttachmentsTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         test.login("testUser", "test");
         // create some attachments
@@ -607,6 +604,18 @@ public class AppTest extends TestCase {
                 "test description", attachments);
         List<ProjectResource> resources = test.listResources(p);
         assertTrue(resources.size() > 0);
+    }
+    
+    /* Add Attachments to Project Test */
+    public void addAttachmentsToProjectTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        // create some attachments
+        List<String> attachments = new ArrayList<String>();
+        attachments.add(test.createAttachment("/home/lachlan/test.zip"));
+        Project p = test.listProjects().get(0);
+        String result = test.addAttachmentsToProject(p, attachments);
+        assertEquals("Expected Success", "Success", result);
     }
 
     /* LOGOUT TEST */
