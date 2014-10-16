@@ -469,7 +469,8 @@ public class Client {
         };
         try {
             List<ProjectResource> resources = RESTClient.path(resource)
-                    .resolveTemplate("projectId", p.getId()).request()
+                    .resolveTemplate("projectId", p.getId())
+                    .queryParam("root", 1).request()    // list only root resources
                     .get(resourceType);
             return resources;
         } catch (NotFoundException e) {
