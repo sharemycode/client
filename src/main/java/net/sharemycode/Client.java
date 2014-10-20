@@ -234,38 +234,6 @@ public class Client {
         return "Error: check file path is a valid zip or file.";
     }
 
-    /*
-     * // Using Java servlet, not working. public JSONObject fileUpload(String
-     * filePath) throws IOException {
-     * 
-     * File file = new File(filePath);
-     * 
-     * URL url = new URL(target + UPLOADENDPOINT); HttpURLConnection
-     * httpConnection = (HttpURLConnection) url.openConnection();
-     * httpConnection.setUseCaches(false); httpConnection.setDoOutput(true);
-     * httpConnection.setRequestMethod("POST");
-     * //httpConnection.setRequestProperty("Content-Type",
-     * "application/octet-stream");
-     * httpConnection.setRequestProperty("filename", file.getName());
-     * 
-     * // open output stream of HTTP connection for writing data OutputStream
-     * outputStream = httpConnection.getOutputStream(); // create input stream
-     * for reading from file FileInputStream inputStream = new
-     * FileInputStream(file);
-     * 
-     * byte[] buffer = new byte[4096]; int bytesRead = -1;
-     * System.out.println("DEBUG: Writing data to server"); while((bytesRead =
-     * inputStream.read(buffer)) != -1) { outputStream.write(buffer, 0,
-     * bytesRead); } outputStream.flush();
-     * System.out.println("DEBUG: Data written"); outputStream.close();
-     * inputStream.close(); int status = httpConnection.getResponseCode();
-     * String message = null; // reads server's response try { message =
-     * IOUtils.toString(httpConnection.getInputStream(), "UTF-8"); } catch
-     * (IOException e) { e.printStackTrace(); }
-     * System.out.println("Server's response: " + message); return new
-     * JSONObject(message); }
-     */
-
     /* PUBLISH RESOURCE */  // Tested 08/10/2014
     public String publishResource(Project project, ProjectResource parent,
             String filePath) throws IOException {
@@ -470,6 +438,24 @@ public class Client {
         try {
             List<ProjectResource> resources = RESTClient.path(resource)
                     .resolveTemplate("projectId", p.getId())
+                    .request().get(resourceType);
+            return resources;
+        } catch (NotFoundException e) {
+            System.err.println("Resource: rest/projects/" + p.getId()
+                    + "/resources\n" + e);
+            return null;
+        }
+    }
+    
+    /* LIST RESOURCES */    // Tested 23/09/2014
+    public List<ProjectResource> listRootResources(Project p) {
+        // Return a list of resources for a project as JSON
+        String resource = "/projects/{projectId}/resources";
+        GenericType<List<ProjectResource>> resourceType = new GenericType<List<ProjectResource>>() {
+        };
+        try {
+            List<ProjectResource> resources = RESTClient.path(resource)
+                    .resolveTemplate("projectId", p.getId())
                     .queryParam("root", 1).request()    // list only root resources
                     .get(resourceType);
             return resources;
@@ -479,7 +465,6 @@ public class Client {
             return null;
         }
     }
-    
     /* LIST CHILD RESOUCES */   // Tested: 15/10/2014
     public List<ProjectResource> listChildResources(ProjectResource r) {
         // Return a list of child resources for resource
