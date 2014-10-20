@@ -447,7 +447,7 @@ public class Client {
         }
     }
     
-    /* LIST RESOURCES */    // Tested 23/09/2014
+    /* LIST ROOT RESOURCES */    // Tested 20/10/2014
     public List<ProjectResource> listRootResources(Project p) {
         // Return a list of resources for a project as JSON
         String resource = "/projects/{projectId}/resources";
