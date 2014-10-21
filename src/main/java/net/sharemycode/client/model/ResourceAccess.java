@@ -1,4 +1,4 @@
-package net.sharemycode.model;
+package net.sharemycode.client.model;
 
 import java.io.Serializable;
 

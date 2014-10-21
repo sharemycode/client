@@ -1,4 +1,4 @@
-package net.sharemycode;
+package net.sharemycode.client;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -18,32 +18,46 @@ import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import net.sharemycode.model.Project; // JavaBean entities
-import net.sharemycode.model.ProjectAccess;
-import net.sharemycode.model.ProjectResource;
-import net.sharemycode.model.ProjectResource.ResourceType;
-import net.sharemycode.model.ResourceAccess;
-import net.sharemycode.model.UserProfile;
+import net.sharemycode.client.model.Project;
+import net.sharemycode.client.model.ProjectAccess;
+import net.sharemycode.client.model.ProjectResource;
+import net.sharemycode.client.model.ResourceAccess;
+import net.sharemycode.client.model.UserProfile;
+import net.sharemycode.client.model.ProjectResource.ResourceType;
 
 import org.apache.commons.codec.binary.Base64;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+/**
+ * Defines abstracted methods for client applications
+ * to use the sharemycode.net service
+ * 
+ * @author Lachlan Archibald
+ */
 public class Client {
 
-    public static final String DOMAIN = "localhost:8080";   // The domain of your REST service. Include the port after ':' if required.
-    public static final String DIRECTORY = "";  // The directory where your service webapp lives
-    public static final String RESTENDPOINT = "/sharemycode/rest";  // REST endpoint directory.
-    public static final String UPLOADENDPOINT = "/sharemycode/upload";  // File upload endpoint
-    public static final int MAX_UPLOAD = 10485760; // 10MB
+    /** The domain of the REST service */
+    public static final String DOMAIN = "localhost:8080";
+    /** The directory where the service webapp lives */
+    public static final String DIRECTORY = "";
+    /** The base REST endpoint */
+    public static final String RESTENDPOINT = "/sharemycode/rest";
+    /** The File Upload endpoint */
+    public static final String UPLOADENDPOINT = "/sharemycode/upload";
+    /** Maximum allowed size for a file - 10MB */
+    public static final int MAX_UPLOAD = 10485760;
 
-    // Client instance variables
+    /** Defines the base server URI */
     private String target;
+    /** Defines the JAX-RS ClientBuilder */
     private javax.ws.rs.client.Client client;
+    /** JAX-RS WebTarget */
     private WebTarget RESTClient;
 
-    /*
-     * TEST MAIN METHOD - development only
+    /**
+     * Tests basic client connection
+     * @throws IOException if exception occurs
      */
     public static void main(String[] args) throws IOException {
         // Create a client
@@ -58,8 +72,11 @@ public class Client {
         System.out.println("Client test complete!");
     }
 
-    /*
-     * CLIENT CONSTRUCTOR Create HTTPClient with server details
+    /**
+     * Creates RESTClient with server details
+     * @param domain Domain of the server
+     * @param directory subdirectory where the service is
+     * @param RESTEndpoint base endpoint for REST 
      */
     public Client(String domain, String directory, String RESTEndpoint) {
         // Constructor: create HTTPClient
@@ -68,18 +85,25 @@ public class Client {
         RESTClient = client.target(target + RESTENDPOINT);
     }
 
+    /** 
+     * Returns WebTarget instance used by the client 
+     * @return WebTarget
+     */
     public WebTarget getClient() {
         return RESTClient;
     }
 
-    /* CLOSE CLIENT */
+    /** Closes the JAX-RS Client */
     public void close() {
         // closes REST Client connection
         client.close();
     }
 
-    /*
-     * TEST CONNECTION Test connection to the server is ok
+    /**
+     * Tests that connection to the service is ok
+     * 
+     * @return Boolean true if successful
+     * @throws IOException if exception occurs while reading response
      */
     public Boolean testConnection() throws IOException {
         // test connection to the server
@@ -88,8 +112,7 @@ public class Client {
         Response response = RESTClient.path(requestContent)
                 .request(MediaType.TEXT_PLAIN).get();
         System.out.println(response.readEntity(String.class));
-        if (response.getStatus() == 200) { // if connection successful, return
-                                           // true
+        if (response.getStatus() == 200) {
             response.close(); // release the connection
             return true;
         } else {
@@ -106,6 +129,17 @@ public class Client {
 
     /* --- POST REQUESTS --- */
 
+    /**
+     * Creates new User account on the service
+     * @param username  username
+     * @param email     email
+     * @param emailc    email confirmation
+     * @param password  password
+     * @param passwordc password confirmation
+     * @param firstName User's first name
+     * @param lastName  User's last name
+     * @return "Registration successful" if success, else error message
+     */
     /* CREATE USER - POST JSON */   // Tested: 23/09/2014
     public String createUser(String username, String email, String emailc,
             String password, String passwordc, String firstName, String lastName) {
@@ -126,6 +160,14 @@ public class Client {
         return message;
     }
 
+    /**
+     * Creates new Project with given information
+     * @param name          Project name
+     * @param version       Project version
+     * @param description   Project description (200 characters)
+     * @param attachments   List of attachment ids
+     * @return Project
+     */
     /* CREATE PROJECT - POST JSON */    // Tested 20/09/2014
     public Project createProject(String name, String version,
             String description, List<String> attachments) {
@@ -152,6 +194,13 @@ public class Client {
         return result;
     }
 
+    /**
+     * Creates Project authorisation for given User
+     * @param p Project to authorise user to access
+     * @param userId User id
+     * @param accessLevel ProjectAccess.AccessLevel to assign
+     * @return "Authorisation successful" if success
+     */
     /* CREATE PROJECT AUTHORISATION */  // Tested: 01/10/2014
     public String createProjectAuthorisation(Project p, String userId,
             ProjectAccess.AccessLevel accessLevel) {
@@ -180,6 +229,14 @@ public class Client {
             return "Error: " + status + " - " + message;
     }
 
+    /**
+     * Create Resource Authorisation for User
+     * 
+     * @param r ProjectResource to give access to
+     * @param userId User id
+     * @param accessLevel ResourceAccess.AccessLevel to assign
+     * @return "Authorisation successful" if success
+     */
     /* CREATE RESOURCE AUTHORISATION */ // Tested: 01/10/2014
     public String createResourceAuthorisation(ProjectResource r, String userId,
             ResourceAccess.AccessLevel accessLevel) {
@@ -207,8 +264,13 @@ public class Client {
             return "Error: " + status + " - " + message;
     }
 
+    /**
+     * Creates attachment using REST endpoint
+     * 
+     * @param filePath String path to file to upload
+     * @return String attachment id
+     */
     /* CREATE ATTACHMENT */ // Tested 09/10/2014
-    // Creates attachment using REST endpoint
     public String createAttachment(String filePath) {
         File file = new File(filePath);
         if (file.exists()) {
@@ -234,6 +296,15 @@ public class Client {
         return "Error: check file path is a valid zip or file.";
     }
 
+    /**
+     * Publishes a new ProjectResource from File
+     * 
+     * @param project Project to create new resource for
+     * @param parent Parent directory to create resource under
+     * @param filePath Path to the file
+     * @return "Resource created" if successful
+     * @throws IOException if error with Base64Encoding
+     */
     /* PUBLISH RESOURCE */  // Tested 08/10/2014
     public String publishResource(Project project, ProjectResource parent,
             String filePath) throws IOException {
@@ -276,6 +347,14 @@ public class Client {
             return "Invalid file entered";
     }
 
+    /**
+     * Creates a new directory in the project
+     * 
+     * @param project Project
+     * @param parent Parent ProjectResource to create directory under
+     * @param name Name of directory
+     * @return created ProjectResource
+     */
     /* CREATE DIRECTORY */  // Tested: 14/10/2014
     public ProjectResource createDirectory(Project project,
             ProjectResource parent, String name) {
@@ -313,6 +392,11 @@ public class Client {
 
     /* --- GET REQUESTS --- */
 
+    /**
+     * Gets the authentication status for logged in user
+     * 
+     * @return String message "true"
+     */
     /* GET AUTH STATUS */   // Tested: 25/09/2014
     public String getAuthStatus() {
         Response response = RESTClient.path("/auth/status").request().get();
@@ -321,6 +405,12 @@ public class Client {
         return message;
     }
 
+    /**
+     * Returns userid of the User with given username
+     * 
+     * @param username String username to lookup
+     * @return String userId
+     */
     /* LOOKUP USER BY USERNAME */   // Tested 02/10/2014
     // Currently returns userId for use in authorisation methods. 
     // This method may need to be removed
@@ -340,6 +430,12 @@ public class Client {
         return null;
     }
 
+    /**
+     * Returns userid of the User with given email
+     * 
+     * @param email user's email address
+     * @return String userId
+     */
     /* LOOKUP USER BY EMAIL */  // Tested 02/10/2014
     // Currently returns userId. This may need to return username only.
     public String lookupUserByEmail(String email) {
@@ -358,6 +454,12 @@ public class Client {
         return null;
     }
 
+    /**
+     * Gets UserProfile for given username
+     * 
+     * @param username String username to get profile for
+     * @return UserProfile
+     */
     /* GET USER PROFILE */  // Tested 02/10/2014
     public UserProfile getUserProfile(String username) {
         String resource = "/users/{username}/profile";
@@ -369,6 +471,11 @@ public class Client {
         return profile;
     }
 
+    /**
+     * Lists Projects that the user owns
+     * 
+     * @return List of Projects
+     */
     /* LIST PROJECTS */ // Tested 23/09/2014
     public List<Project> listProjects() {
         // return a list of user's projects
@@ -379,6 +486,11 @@ public class Client {
         return projects;
     }
 
+    /**
+     * Lists Projects that the user has READ, READ_WRITE or RESTRICTED permissions
+     * 
+     * @return List of Projects
+     */
     /* LIST SHARED PROJECTS */  // Tested 02/10/2014
     public List<Project> listSharedProjects() {
         GenericType<List<Project>> projectType = new GenericType<List<Project>>() {
@@ -388,6 +500,13 @@ public class Client {
         return projects;
     }
 
+    /**
+     * Download the entire Project as a .zip
+     * -Note: Downloads to Client execution directory currently
+     * 
+     * @param p Project to download
+     * @return int status, 200 if successful
+     */
     /* FETCH PROJECT */ // Tested 10/10/2014
     public int fetchProject(Project p) {
         int status = 0;
@@ -429,6 +548,12 @@ public class Client {
         return status;
     }
 
+    /**
+     * Lists Project Resources
+     * 
+     * @param p Project to list Resources of
+     * @return List of ProjectResources
+     */
     /* LIST RESOURCES */    // Tested 23/09/2014
     public List<ProjectResource> listResources(Project p) {
         // Return a list of resources for a project as JSON
@@ -447,6 +572,12 @@ public class Client {
         }
     }
     
+    /**
+     * Lists the top-level resources of the Project
+     * 
+     * @param p Project to list resources
+     * @return List of ProjectResources
+     */
     /* LIST ROOT RESOURCES */    // Tested 20/10/2014
     public List<ProjectResource> listRootResources(Project p) {
         // Return a list of resources for a project as JSON
@@ -465,6 +596,13 @@ public class Client {
             return null;
         }
     }
+    
+    /**
+     * Lists the child resources of the given ProjectResource
+     * 
+     * @param r ProjectResource parent
+     * @return List of ProjectResources
+     */
     /* LIST CHILD RESOUCES */   // Tested: 15/10/2014
     public List<ProjectResource> listChildResources(ProjectResource r) {
         // Return a list of child resources for resource
@@ -482,6 +620,13 @@ public class Client {
         }
     }
     
+    /**
+     * Download the given ProjectResource
+     * -Note: Currently downloads to Client's execution location
+     * 
+     * @param r ProjectResource to download
+     * @return int status, 200 if successful
+     */
     /* FETCH RESOURCE */    // Tested 23/09/2014
     public int fetchResource(ProjectResource r) {
         int status = 0;
@@ -523,8 +668,13 @@ public class Client {
         return status;
     }
 
+    /**
+     * Gets the current user's ProjectAccess level for the given Project
+     * 
+     * @param p Project to get accessLevel for
+     * @return ProjectAccess.AccessLevel
+     */
     /* GET PROJECT ACCESS LEVEL */
-    // TODO Test this function
     public ProjectAccess.AccessLevel getProjectAccessLevel(Project p) {
         // get the project access level for the current logged in user
         String resource = "/projects/{projectId}/access";
@@ -537,8 +687,13 @@ public class Client {
             return null;
     }
 
+    /**
+     * Gets the current user's ResourceAccess level for the given ProjectResource
+     * 
+     * @param r ProjectResource to get accessLevel for
+     * @return ResourceAccess.AccessLevel
+     */
     /* GET RESOURCE ACCESS LEVEL */
-    // TODO Test this function
     public ResourceAccess.AccessLevel getResourceAccessLevel(ProjectResource r) {
         // get the resource access level for the current logged in user
         String resource = "/resources/{resourceId}/access";
@@ -551,6 +706,13 @@ public class Client {
             return null;
     }
 
+    /**
+     * Gets Project authorisation for given User
+     * 
+     * @param p Project to get authorisation for
+     * @param userId User to get authorisation for
+     * @return ProjectAccess.AccessLevel
+     */
     /* GET PROJECT AUTHORISATION */ // Tested: 01/10/2014
     public ProjectAccess.AccessLevel getProjectAuthorisation(Project p,
             String userId) {
@@ -566,6 +728,13 @@ public class Client {
             return null;
     }
 
+    /**
+     * Gets ProjectResource authorisation for given User
+     * 
+     * @param r ProjectResource to get authorisation for
+     * @param userId User to get authorisation for
+     * @return ResourceAccess.AccessLevel
+     */
     /* GET RESOURCE AUTHORISATION */    // Tested: 01/10/2014
     public ResourceAccess.AccessLevel getResourceAuthorisation(
             ProjectResource r, String userId) {
@@ -583,6 +752,15 @@ public class Client {
 
     /* --- PUT REQUESTS --- */
 
+    /**
+     * Updates the Project information
+     * 
+     * @param p Project to update
+     * @param name New Project name
+     * @param version New Project version
+     * @param description new Project Description
+     * @return "Project updated" if successful
+     */
     /* UPDATE PROJECT */    // Tested 09/10/2014
     public String updateProject(Project p, String name, String version,
             String description) {
@@ -609,6 +787,13 @@ public class Client {
             return "Project not modified - " + status;
     }
 
+    /**
+     * Adds attachments to existing Project
+     * 
+     * @param p Project to update
+     * @param attachments List of attachmentIds to give to project
+     * @return "Success" if successful
+     */
     /* ADD ATTACHMENTS TO PROJECT */    // Tested 14/10/2014
     public String addAttachmentsToProject(Project p, List<String> attachments) {
         // add attachments to existing project
@@ -627,6 +812,14 @@ public class Client {
             return "Failure: " + status;
     }
 
+    /**
+     * Changes the displayed owner of a project.
+     * Required to be current displayed owner of project
+     * 
+     * @param p Project to update
+     * @param username Username to make new owner
+     * @return "Project owner updated" if successful"
+     */
     /* CHANGE PROJECT OWNER */  // Tested 09/10/2014
     public String changeProjectOwner(Project p, String username) {
         // change the official project owner
@@ -645,6 +838,13 @@ public class Client {
             return status + ": " + message;
     }
 
+    /**
+     * Updates the ProjectResource with new data
+     * 
+     * @param r ProjectResource to update
+     * @param filePath Path to File
+     * @return "Resource updated" if successful
+     */
     /* UPDATE RESOURCE */   // Tested 09/10/2014
     public String updateResource(ProjectResource r, String filePath) {
         // update existing resource with new ResourceContent
@@ -673,6 +873,13 @@ public class Client {
             return "Invalid file entered";
     }
 
+    /**
+     * Moves the given ProjectResource under a new Parent
+     * 
+     * @param r ProjectResource to move
+     * @param parent Parent ProjectResource to move to
+     * @return updated ProjectResource
+     */
     /* MOVE RESOURCE */ // Tested: 14/10/2014
     public ProjectResource moveResource(ProjectResource r,
             ProjectResource parent) {
@@ -697,6 +904,13 @@ public class Client {
         return update;
     }
 
+    /**
+     * Updates the name of the given ProjectResource
+     * 
+     * @param r ProjectResource to rename
+     * @param name New name of the resource
+     * @return Updated ProjectResource
+     */
     /* RENAME RESOURCE */   // Tested: 14/10/2014
     public ProjectResource renameResource(ProjectResource r, String name) {
         // update the filename of a resource
@@ -717,6 +931,19 @@ public class Client {
         return update;
     }
 
+    /**
+     * Updates the given user's account with new information
+     * 
+     * @param username Username to update the account of
+     * @param newUsername New username
+     * @param email New email address
+     * @param emailc Confirm new email address
+     * @param password New password
+     * @param passwordc Confirm new password
+     * @param firstName New firstName
+     * @param lastName New lastName
+     * @return JSONObject (may need to change)
+     */
     /* UPDATE USER ACCOUNT */   // Tested 02/10/2014
     // Currently returns JSON user data. This is probably a security issue.
     // It should probably only return a success status
@@ -754,6 +981,16 @@ public class Client {
         return null;
     }
 
+    /**
+     * Updates the given user's UserProfile
+     * 
+     * @param username Username to update
+     * @param displayName New displayName
+     * @param about New about section
+     * @param contact New contact section
+     * @param interests New interests section
+     * @return updated UserProfile
+     */
     /* UPDATE USER PROFILE */   // Tested: 02/10/2014
     public UserProfile updateUserProfile(String username, String displayName,
             String about, String contact, String interests) {
@@ -777,6 +1014,14 @@ public class Client {
             return null;
     }
 
+    /**
+     * Updates Project authorisation for the given User
+     * 
+     * @param p Project
+     * @param userId User to update
+     * @param accessLevel ProjectAccess.AccessLevel to assign
+     * @return "Update successful" if successful
+     */
     /* UPDATE PROJECT AUTHORISATION */  // Tested: 01/10/2014
     public String updateProjectAuthorisation(Project p, String userId,
             ProjectAccess.AccessLevel accessLevel) {
@@ -804,6 +1049,14 @@ public class Client {
             return "Error: " + status + " - " + message;
     }
 
+    /**
+     * Updates Resource authorisation for the given User
+     * 
+     * @param r ProjectResource
+     * @param userId User to update
+     * @param accessLevel ResourceAccess.AccessLevel to assign
+     * @return "Update successful" if successful
+     */
     /* UPDATE RESOURCE AUTHORISATION */ // Tested: 01/10/2014
     public String updateResourceAuthorisation(ProjectResource r, String userId,
             ResourceAccess.AccessLevel accessLevel) {
@@ -832,6 +1085,12 @@ public class Client {
 
     /* --- DELETE REQUESTS --- */
 
+    /**
+     * Deletes the given Project and all associated Resources and Access
+     * 
+     * @param p Project to delete
+     * @return int 200 if successful
+     */
     /* DELETE PROJECT - DELETE */   // Tested: 14/10/2014
     public int deleteProject(Project p) {
         String resource = "/projects/{projectId}";
@@ -842,6 +1101,12 @@ public class Client {
         return status;
     }
 
+    /**
+     * Deletes the given ProjectResource and all associated Access and Resources
+     * 
+     * @param r ProjectResource to delete
+     * @return int 200 if successful
+     */
     /* DELETE RESOURCE - DELETE */  // Tested: 14/10/2014
     public int deleteResource(ProjectResource r) {
         String path = "/resources/{id}";
@@ -852,6 +1117,13 @@ public class Client {
         return status;
     }
 
+    /**
+     * Removes Project authorisation for the given User
+     * 
+     * @param p Project to remove access for
+     * @param userId UserId to remove access for
+     * @return "Authorisation removed" if successful
+     */
     /* REMOVE PROJECT AUTHORISATION */  // Tested: 01/10/2014
     public String removeProjectAuthorisation(Project p, String userId) {
         // submit DELETE request
@@ -869,6 +1141,13 @@ public class Client {
             return "Error: " + status + " - " + message;
     }
 
+    /**
+     * Removes ProjectResource authorisation for the given user
+     * 
+     * @param r ProjectResource to remove access for
+     * @param userId UserId to remove access for
+     * @return "Authorisation removed" if successful
+     */
     /* REMOVE RESOURCE AUTHORISATION */ // Tested: 01/10/2014
     public String removeResourceAuthorisation(ProjectResource r, String userId) {
         // submit DELETE request
@@ -888,6 +1167,13 @@ public class Client {
 
     /* USER AUTHENTICATION */
 
+    /**
+     * Logs the given user in to the sharemycode.net service
+     * 
+     * @param username Username to login
+     * @param password Password for the user
+     * @return "Login successful!" if successful
+     */
     /* USER LOGIN */    // Tested: 25/06/2014
     public String login(String username, String password) {
         // submit login request
@@ -902,24 +1188,11 @@ public class Client {
             return "Login failed";
     }
 
-    /* HTTP BASIC AUTHENTICATION */ // Tested: 25/09/2014
-    public String httpBasicAuth(String username, String password) {
-        try {
-            String encoding = Base64.encodeBase64String(new String(username
-                    .toLowerCase() + ":" + password.toLowerCase())
-                    .getBytes("UTF-8"));
-            Response response = RESTClient.path("/auth/login").request()
-                    .header("Authorization", "Basic " + encoding)
-                    .post(Entity.text(""));
-            String token = response.readEntity(String.class);
-            response.close();
-            return token;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
+    /** 
+     * Logs the current User out of the sharemycode.net service
+     * 
+     * @return 200 if successful
+     */
     /* USER LOGOUT */
     // TODO user logout - waiting on PicketLink logout functionality.
     public int logout() {

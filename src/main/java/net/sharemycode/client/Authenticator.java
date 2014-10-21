@@ -1,4 +1,4 @@
-package net.sharemycode;
+package net.sharemycode.client;
 
 import java.io.IOException;
 
@@ -12,10 +12,9 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.codec.binary.Base64;
 import org.json.JSONObject;
 
-/*
- * Token Authenticator Filter for Client Library
+/**
+ * Adds Authorization header to client using token returned from library
  * @author Lachlan Archibald
- * Description: Adds Authorization header to client using token returned from library
  */
 
 public class Authenticator implements ClientRequestFilter {
@@ -32,7 +31,16 @@ public class Authenticator implements ClientRequestFilter {
         headers.add("Authorization", "Token " + token);
     }
 
-    public static String httpBasicAuth(String username, String password,
+    /**
+     * Performs HTTP Basic Authentication for User
+     * 
+     * @param username String username
+     * @param password String password for the user
+     * @param client JAX-RS WebTarget to submit the request
+     * @return valid authctoken for user
+     */
+    /* HTTP BASIC AUTHENTICATION */ // Tested: 25/09/2014
+    protected static String httpBasicAuth(String username, String password,
             WebTarget client) {
         try {
             String encoding = Base64.encodeBase64String(new String(username

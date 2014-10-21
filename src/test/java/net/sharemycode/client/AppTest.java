@@ -1,4 +1,4 @@
-package net.sharemycode;
+package net.sharemycode.client;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -7,12 +7,14 @@ import java.util.List;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
-import net.sharemycode.model.Project;
-import net.sharemycode.model.ProjectAccess;
-import net.sharemycode.model.ProjectResource;
-import net.sharemycode.model.ProjectResource.ResourceType;
-import net.sharemycode.model.ResourceAccess;
-import net.sharemycode.model.UserProfile;
+import net.sharemycode.client.Authenticator;
+import net.sharemycode.client.Client;
+import net.sharemycode.client.model.Project;
+import net.sharemycode.client.model.ProjectAccess;
+import net.sharemycode.client.model.ProjectResource;
+import net.sharemycode.client.model.ResourceAccess;
+import net.sharemycode.client.model.UserProfile;
+import net.sharemycode.client.model.ProjectResource.ResourceType;
 
 import org.json.JSONObject;
 
