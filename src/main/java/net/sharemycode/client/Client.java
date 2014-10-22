@@ -103,15 +103,13 @@ public class Client {
      * Tests that connection to the service is ok
      * 
      * @return Boolean true if successful
-     * @throws IOException if exception occurs while reading response
      */
-    public Boolean testConnection() throws IOException {
+    public Boolean testConnection() {
         // test connection to the server
         String requestContent = "/system/test";
 
         Response response = RESTClient.path(requestContent)
                 .request(MediaType.TEXT_PLAIN).get();
-        System.out.println(response.readEntity(String.class));
         if (response.getStatus() == 200) {
             response.close(); // release the connection
             return true;
@@ -516,7 +514,7 @@ public class Client {
         try {
             Response response = RESTClient.path(path)
                     .resolveTemplate("projectId", p.getId())
-                    .request(MediaType.APPLICATION_OCTET_STREAM).get();
+                    .request("application/zip").get();
             status = response.getStatus();
             if (status == 200) { // success, download project
                 String content = response

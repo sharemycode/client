@@ -61,7 +61,7 @@ public class AppTest extends TestCase {
     public static final String UPLOADENDPOINT = "/sharemycode/upload";  // File upload endpoint
 
     /* CONNECTION TEST */
-    public void connectionTest() throws IOException {
+    public void connectionTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
         assertTrue(test.testConnection());
     }
@@ -238,8 +238,6 @@ public class AppTest extends TestCase {
             fail("This test should have failed");
         } catch (IllegalStateException e) {
             assertTrue(true);
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
