@@ -177,6 +177,26 @@ public class AppTest extends TestCase {
         assertTrue(resources.size() > 0);
     }
     
+    /* LIST ROOT RESOURCES TEST */   // requires a valid projectId
+    public void listRootResourcesTest() {
+        Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);
+        test.login("testUser", "test");
+        List<Project> projects = test.listProjects();
+        List<ProjectResource> resources = null;
+        for (Project p : projects) {
+            resources = test.listRootResources(p);
+            if (resources.size() >0 ) {
+                for (ProjectResource r : resources) {
+                    System.out.println("Resource ID: " + r.getId()
+                            + ", Resource Name: " + r.getName() + ", Type: "
+                            + r.getResourceType());
+                }
+                break;
+            }
+        }
+        assertTrue(resources.size() > 0);
+    }
+    
     /* LIST CHILD RESOUCES TEST */
     public void listChildResourcesTest() {
         Client test = new Client(DOMAIN, DIRECTORY, RESTENDPOINT);

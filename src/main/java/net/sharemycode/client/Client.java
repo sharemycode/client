@@ -333,7 +333,7 @@ public class Client {
             // prepare to PUT resourceContent
             response.close();
             path = location.toString().substring(
-                    RESTClient.getUri().toString().length());
+                    RESTClient.getUri().toString().length())  + "/content";
             response = RESTClient.path(path).request().put(Entity.text(data));
             int status = response.getStatus();
             response.close();
@@ -853,7 +853,7 @@ public class Client {
                 byteData = Files.readAllBytes(Paths.get(filePath));
                 String data = Base64.encodeBase64String(byteData);
                 // prepare to PUT resourceContent
-                String path = "/resources/{id}";
+                String path = "/resources/{id}/content";
                 Response response = RESTClient.path(path)
                         .resolveTemplate("id", r.getId()).request()
                         .put(Entity.text(data));
@@ -1200,6 +1200,5 @@ public class Client {
         int status = response.getStatus();
         response.close();
         return status;
-
     }
 }
